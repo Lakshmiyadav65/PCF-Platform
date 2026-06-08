@@ -99,10 +99,12 @@ export default function EcoChat() {
     const navigate = useNavigate()
     const chatRef = useRef(null)
     const chatBodyRef = useRef(null)
+    const fileInputRef = useRef(null)
     const sleepTimer = useRef(null)
 
     const [isChatOpen, setIsChatOpen] = useState(false)
     const [chatInput, setChatInput] = useState('')
+    const [attachment, setAttachment] = useState(null)
     // Assistant state machine: 'idle' | 'thinking' | 'searching' | 'typing' | 'sleeping'
     const [mode, setMode] = useState('idle')
     const [messages, setMessages] = useState([
@@ -153,7 +155,7 @@ export default function EcoChat() {
     const buildReply = (text) => {
         const t = text.toLowerCase()
         if (/\b(hi|hello|hey|hii|yo)\b/.test(t)) {
-            return "Hey! 👋 Great to see you. What would you like help with today — PCF reports, supplier questionnaires, or something else?"
+            return "Hey! 👋 Great to see you. What would you like help with today: PCF reports, supplier questionnaires, or something else?"
         }
         if (t.includes('pcf') || t.includes('carbon') || t.includes('footprint') || t.includes('emission')) {
             return "For Product Carbon Footprints, the PCF Manuals walk you through every step. Want me to open the PCF guidance, or connect you with a Manufacturer Consultant?"
@@ -165,7 +167,7 @@ export default function EcoChat() {
             return "You'll find API key setup under the API documentation. Need a hand generating one?"
         }
         if (t.includes('contact') || t.includes('human') || t.includes('agent') || t.includes('support') || t.includes('email')) {
-            return "Of course — our team replies within 24 hours. I can take you to the Support form, or you can email info@enviguide.com."
+            return "Of course, our team replies within 24 hours. I can take you to the Support form, or you can email info@enviguide.com."
         }
         if (t.includes('thank')) {
             return "You're very welcome! 🌿 Happy to help anytime."
@@ -173,15 +175,30 @@ export default function EcoChat() {
         return "Got it! While I'm still learning, I can point you to the right place. Pick a context below, or I can take you to our Support team for a detailed answer."
     }
 
+    // Eco AI should never speak with em/en dashes — normalise any generated
+    // text (backend reply or fallback) to plain commas before displaying it.
+    const cleanReply = (text) => (text || '').replace(/\s*[—–]\s*/g, ', ')
+
     const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+
+    const onFileChange = (e) => {
+        const file = e.target.files?.[0]
+        if (file) setAttachment({ name: file.name })
+        e.target.value = '' // allow re-selecting the same file
+        wake()
+    }
 
     const sendChat = async (e) => {
         e.preventDefault()
         const text = chatInput.trim()
-        if (!text || busy) return
-        const history = [...messages, { role: 'user', text }]
+        if ((!text && !attachment) || busy) return
+        const displayText = attachment
+            ? (text ? `${text}\n📎 ${attachment.name}` : `📎 ${attachment.name}`)
+            : text
+        const history = [...messages, { role: 'user', text: displayText }]
         setMessages(history)
         setChatInput('')
+        setAttachment(null)
         clearTimeout(sleepTimer.current)
 
         const replyPromise = (async () => {
@@ -209,7 +226,7 @@ export default function EcoChat() {
         setMode('typing')
 
         const [reply] = await Promise.all([replyPromise, sleep(550)])
-        setMessages((prev) => [...prev, { role: 'ai', text: reply }])
+        setMessages((prev) => [...prev, { role: 'ai', text: cleanReply(reply) }])
         setMode('idle')
         scheduleSleep()
     }
@@ -335,24 +352,59 @@ export default function EcoChat() {
                         </>)}
                     </div>
 
-                    {/* Input bar */}
-                    <form className={styles.chatInputBar} onSubmit={sendChat}>
-                        <input
-                            type="text"
-                            className={styles.chatInput}
-                            placeholder="Ask me anything…"
-                            aria-label="Message Eco AI"
-                            value={chatInput}
-                            onChange={(e) => { setChatInput(e.target.value); wake() }}
-                            onFocus={wake}
-                        />
-                        <button type="submit" className={styles.chatSend} aria-label="Send message" disabled={!chatInput.trim() || busy}>
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                <path d="m22 2-7 20-4-9-9-4Z" />
-                                <path d="M22 2 11 13" />
-                            </svg>
-                        </button>
-                    </form>
+                    {/* Input bar + AI disclaimer */}
+                    <div className={styles.chatFooter}>
+                        {attachment && (
+                            <div className={styles.attachChip}>
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                    <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
+                                </svg>
+                                <span className={styles.attachName}>{attachment.name}</span>
+                                <button type="button" className={styles.attachRemove} aria-label="Remove attachment" onClick={() => setAttachment(null)}>
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12" /></svg>
+                                </button>
+                            </div>
+                        )}
+
+                        <form className={styles.chatInputBar} onSubmit={sendChat}>
+                            <button
+                                type="button"
+                                className={styles.chatAttach}
+                                aria-label="Attach a file"
+                                title="Attach a file"
+                                onClick={() => fileInputRef.current?.click()}
+                            >
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                    <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
+                                </svg>
+                            </button>
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                className={styles.hiddenFile}
+                                onChange={onFileChange}
+                                tabIndex={-1}
+                                aria-hidden="true"
+                            />
+                            <input
+                                type="text"
+                                className={styles.chatInput}
+                                placeholder="Ask me anything…"
+                                aria-label="Message Eco AI"
+                                value={chatInput}
+                                onChange={(e) => { setChatInput(e.target.value); wake() }}
+                                onFocus={wake}
+                            />
+                            <button type="submit" className={styles.chatSend} aria-label="Send message" disabled={(!chatInput.trim() && !attachment) || busy}>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                    <path d="m22 2-7 20-4-9-9-4Z" />
+                                    <path d="M22 2 11 13" />
+                                </svg>
+                            </button>
+                        </form>
+
+                        <p className={styles.chatDisclaimer}>AI-generated content may be inaccurate.</p>
+                    </div>
                 </div>
             )}
 
