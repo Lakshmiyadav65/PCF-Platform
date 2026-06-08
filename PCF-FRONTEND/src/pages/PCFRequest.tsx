@@ -364,6 +364,7 @@ const PCFRequest: React.FC = () => {
       const button = (
         <Button
           type="text"
+          style={{ paddingLeft: 0 }}
           disabled={!isCompleted || isLoading}
           loading={isLoading}
           onClick={() =>
@@ -396,13 +397,13 @@ const PCFRequest: React.FC = () => {
       title: "PCF Request Number",
       dataIndex: "requestNumber",
       key: "requestNumber",
-      width: 180,
+      width: 150,
     },
     {
       title: "Product Name",
       dataIndex: "productName",
       key: "productName",
-      width: 250,
+      width: 220,
       render: (_, record) => (
         <Space>
           {record.productIcon}
@@ -414,26 +415,26 @@ const PCFRequest: React.FC = () => {
       title: "Status",
       dataIndex: "status",
       key: "status",
-      width: 150,
+      width: 120,
       render: (status) => getStatusTag(status),
     },
     {
       title: "Submitted By",
       dataIndex: "submittedBy",
       key: "submittedBy",
-      width: 200,
+      width: 150,
     },
     {
       title: "Submitted On",
       dataIndex: "submittedOn",
       key: "submittedOn",
-      width: 200,
+      width: 170,
     },
     ...(isSuperAdmin ? [reportColumn] : []),
     {
       title: "Actions",
       key: "actions",
-      width: isSuperAdmin ? 280 : 150,
+      width: isSuperAdmin ? 260 : 150,
       render: (_, record) => {
         const isDraft = record.status?.toLowerCase() === "draft";
         const isCompleted = record.status?.toLowerCase() === "completed";
@@ -443,6 +444,7 @@ const PCFRequest: React.FC = () => {
             {isDraft ? (
               <Button
                 type="text"
+                style={{ paddingLeft: 0 }}
                 onClick={() => navigate(`/pcf-request/${record.id}/edit`)}
                 icon={
                   <Pencil
@@ -456,6 +458,7 @@ const PCFRequest: React.FC = () => {
             ) : (
               <Button
                 type="text"
+                style={{ paddingLeft: 0 }}
                 onClick={() => navigate(`/pcf-request/${record.id}`)}
                 icon={
                   <Eye
@@ -471,6 +474,7 @@ const PCFRequest: React.FC = () => {
               <Tooltip title="Publish PCF as a Catena-X Digital Twin + PCF v9 Submodel in Quintari">
                 <Button
                   type="text"
+                  style={{ paddingLeft: 0 }}
                   loading={isPublishing}
                   disabled={!!publishingId && !isPublishing}
                   onClick={() =>
@@ -740,7 +744,7 @@ const PCFRequest: React.FC = () => {
               columns={columns}
               dataSource={pcfRequests}
               pagination={false}
-              scroll={{ x: 1200 }}
+              scroll={{ x: "max-content" }}
               rowKey="id"
               className="rounded-xl overflow-hidden"
             />
