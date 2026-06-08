@@ -26,6 +26,8 @@ import {
   Pencil,
   Download,
   Send,
+  RefreshCw,
+  Check,
 } from "lucide-react";
 import { Tooltip } from "antd";
 import type { ColumnsType } from "antd/es/table";
@@ -45,6 +47,7 @@ interface PCFRequestItem {
   status: string;
   submittedBy: string;
   submittedOn: string;
+  isPublished?: boolean;
 }
 
 interface PCFFilters {
@@ -84,17 +87,34 @@ const PCFRequest: React.FC = () => {
   // and disable other actions on that row.
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [publishingId, setPublishingId] = useState<string | null>(null);
+  // Rows that have been published to Quintari — drives the post-publish UI
+  // (the "Published / Sent to Quintari" confirmation + Republish action).
+  const [publishedIds, setPublishedIds] = useState<Set<string>>(new Set());
 
-  const handlePublishToQuintari = async (id: string, requestNumber: string) => {
+  const handlePublishToQuintari = async (
+    id: string,
+    requestNumber: string,
+    force = false,
+  ) => {
     if (publishingId) return;
     setPublishingId(id);
     try {
-      const result = await pcfService.publishToQuintari(id);
+      const result = await pcfService.publishToQuintari(id, { force });
       if (result.success) {
-        if (result.data?.alreadyPublished) {
-          message.info(`${requestNumber} was already published to Quintari`);
+        // Move the row into the post-publish state.
+        setPublishedIds((prev) => {
+          const next = new Set(prev);
+          next.add(id);
+          return next;
+        });
+        if (result.data?.alreadyPublished && !force) {
+          message.info(
+            `${requestNumber} is already published and sent to Quintari`,
+          );
         } else {
-          message.success(`${requestNumber} published to Quintari`);
+          message.success(
+            `${requestNumber} ${force ? "republished" : "published"} and sent to Quintari`,
+          );
         }
       } else {
         message.error(result.message || "Failed to publish to Quintari");
@@ -259,6 +279,15 @@ const PCFRequest: React.FC = () => {
               status: item.status || "Unknown",
               submittedBy: submittedBy,
               submittedOn: createdDate ? formatDate(createdDate) : "N/A",
+              // Best-effort hydration: reflect the published state if the API
+              // exposes it (adjust the field name to match the backend). Falls
+              // back to false; in-session publishes are tracked in publishedIds.
+              isPublished: !!(
+                item.is_published_to_quintari ??
+                item.quintari_published ??
+                item.quintari?.is_published ??
+                false
+              ),
             };
           },
         );
@@ -434,13 +463,15 @@ const PCFRequest: React.FC = () => {
     {
       title: "Actions",
       key: "actions",
-      width: isSuperAdmin ? 260 : 150,
+      width: isSuperAdmin ? 380 : 150,
       render: (_, record) => {
         const isDraft = record.status?.toLowerCase() === "draft";
         const isCompleted = record.status?.toLowerCase() === "completed";
         const isPublishing = publishingId === record.id;
+        const isPublished =
+          publishedIds.has(record.id) || !!record.isPublished;
         return (
-          <Space>
+          <Space align="center">
             {isDraft ? (
               <Button
                 type="text"
@@ -470,8 +501,44 @@ const PCFRequest: React.FC = () => {
                 View
               </Button>
             )}
-            {isSuperAdmin && isCompleted && (
-              <Tooltip title="Publish PCF as a Catena-X Digital Twin + PCF v9 Submodel in Quintari">
+            {isSuperAdmin &&
+              isCompleted &&
+              (isPublished ? (
+                <div className="flex items-center gap-2.5">
+                  {/* Post-publish confirmation badge */}
+                  <div className="inline-flex shrink-0 items-center gap-2 rounded-full border border-green-200 bg-green-50 py-1 pl-1.5 pr-3">
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-green-500 shadow-sm shadow-green-500/30">
+                      <Check size={13} strokeWidth={3} className="text-white" />
+                    </span>
+                    <span className="flex flex-col whitespace-nowrap leading-none">
+                      <span className="text-[13px] font-semibold leading-tight text-green-700">
+                        Published
+                      </span>
+                      <span className="text-[10.5px] font-medium leading-tight text-green-600/70">
+                        Sent to Quintari
+                      </span>
+                    </span>
+                  </div>
+                  {/* Revise & resubmit */}
+                  <Button
+                    type="text"
+                    size="small"
+                    style={{ color: "#64748b" }}
+                    loading={isPublishing}
+                    disabled={!!publishingId && !isPublishing}
+                    onClick={() =>
+                      handlePublishToQuintari(
+                        record.id,
+                        record.requestNumber,
+                        true,
+                      )
+                    }
+                    icon={!isPublishing ? <RefreshCw size={14} /> : undefined}
+                  >
+                    Republish
+                  </Button>
+                </div>
+              ) : (
                 <Button
                   type="text"
                   style={{ paddingLeft: 0 }}
@@ -491,8 +558,7 @@ const PCFRequest: React.FC = () => {
                 >
                   Publish to Quintari
                 </Button>
-              </Tooltip>
-            )}
+              ))}
           </Space>
         );
       },
