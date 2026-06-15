@@ -6,48 +6,50 @@ import { dirname, join } from 'path';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// Function to update import paths for relative imports
+// Append explicit .js extensions to extensionless relative ESM specifiers so the
+// compiled output runs under Node's strict ESM resolver.
+//
+// Idempotent: a specifier that already ends in an extension (e.g. ".js" / ".json")
+// is left untouched. The previous version appended ".js" unconditionally, which
+// turned already-correct "./routes/routes.js" into "./routes/routes.js.js" and
+// crashed the server on startup.
+function needsJs(spec) {
+  const isRelative = spec.startsWith('./') || spec.startsWith('../');
+  if (!isRelative) return false;
+  // Already has an extension on the final path segment? Leave it alone.
+  const lastSegment = spec.split('/').pop();
+  return !/\.[a-zA-Z0-9]+$/.test(lastSegment);
+}
+
+function fixSpecifiers(content) {
+  // `import ... from '...'` and `export ... from '...'`
+  content = content.replace(
+    /((?:import|export)\b[^'"]*?\bfrom\s*)(['"])(\.\.?\/[^'"]+)\2/g,
+    (match, pre, quote, spec) => (needsJs(spec) ? `${pre}${quote}${spec}.js${quote}` : match)
+  );
+  // Bare side-effect imports: `import '...'`
+  content = content.replace(
+    /(\bimport\s*)(['"])(\.\.?\/[^'"]+)\2/g,
+    (match, pre, quote, spec) => (needsJs(spec) ? `${pre}${quote}${spec}.js${quote}` : match)
+  );
+  // Dynamic `import('...')` and `require('...')`
+  content = content.replace(
+    /((?:import|require)\s*\(\s*)(['"])(\.\.?\/[^'"]+)\2(\s*\))/g,
+    (match, pre, quote, spec, post) => (needsJs(spec) ? `${pre}${quote}${spec}.js${quote}${post}` : match)
+  );
+  return content;
+}
+
+// Recurse the dist directory and rewrite import paths in every .js file.
 function updateImportPaths(dir) {
-  readdirSync(dir).forEach(file => {
+  readdirSync(dir).forEach((file) => {
     const filePath = join(dir, file);
     if (statSync(filePath).isDirectory()) {
       updateImportPaths(filePath);
     } else if (filePath.endsWith('.js')) {
-      let content = readFileSync(filePath, 'utf8');
-      
-      // Log the original content for debugging
-      console.log(`Processing file: ${filePath}`);
-      console.log('Original content:', content);
-
-      // Update relative import paths starting with '../' or './' to include .js extension
-      let updatedContent = content
-        .replace(/import\s+(\*?\s*(?:[\w\s,{}]+))\s+from\s+['"](\.\.\/[^'"]+)(?!\.js)['"]/g, (match, p1, p2) => {
-          const newPath = `${p2}.js`;
-          console.log(`Updating import from ${p2} to ${newPath}`);
-          return `import ${p1} from '${newPath}'`;
-        })
-        .replace(/require\(['"](\.\.\/[^'"]+)(?!\.js)['"]\)/g, (match, p1) => {
-          const newPath = `${p1}.js`;
-          console.log(`Updating require from ${p1} to ${newPath}`);
-          return `require('${newPath}')`;
-        });
-
-      // Also handle the case for imports starting with './'
-      updatedContent = updatedContent
-        .replace(/import\s+(\*?\s*(?:[\w\s,{}]+))\s+from\s+['"](\.\/[^'"]+)(?!\.js)['"]/g, (match, p1, p2) => {
-          const newPath = `${p2}.js`;
-          console.log(`Updating import from ${p2} to ${newPath}`);
-          return `import ${p1} from '${newPath}'`;
-        })
-        .replace(/require\(['"](\.\/[^'"]+)(?!\.js)['"]\)/g, (match, p1) => {
-          const newPath = `${p1}.js`;
-          console.log(`Updating require from ${p1} to ${newPath}`);
-          return `require('${newPath}')`;
-        });
-
-      // Write the updated content back to the file
+      const content = readFileSync(filePath, 'utf8');
+      const updatedContent = fixSpecifiers(content);
       if (content !== updatedContent) {
-        console.log('Updated content:', updatedContent);
         writeFileSync(filePath, updatedContent, 'utf8');
       }
     }

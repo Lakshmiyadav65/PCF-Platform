@@ -1,4 +1,5 @@
 import { QUESTIONNAIRE_OPTIONS } from "./questionnaireConfig";
+import { QUESTIONNAIRE_SCHEMA_V3 } from "./questionnaireSchemaV3";
 
 export type FieldType =
   | "text"
@@ -2448,5 +2449,12 @@ const buildVisibleQuestionnaireSchema = (
     });
 };
 
-export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] =
+// Legacy (filtered 84-question) schema — preserved for reference and easy
+// revival. No longer the active questionnaire.
+export const QUESTIONNAIRE_SCHEMA_LEGACY: QuestionnaireSection[] =
   buildVisibleQuestionnaireSchema(_FULL_QUESTIONNAIRE_SCHEMA);
+
+// Active questionnaire: Version 3.0 (CX-PCF Rulebook v4 / ISO 14067 / SAMM 9.0.0).
+// Defined in questionnaireSchemaV3.ts. General Information is kept unchanged; the
+// rest is the new Sections A–K (Q1–28). See that file for the form-first scope note.
+export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = QUESTIONNAIRE_SCHEMA_V3;

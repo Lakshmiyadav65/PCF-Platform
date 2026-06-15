@@ -32,6 +32,25 @@ Boundaries:
 - Only advise on the PCF Supplier Intelligence Suite and general ESG/PCF topics. Politely decline unrelated requests.
 - Never invent specific figures, emission factors, customer data, or features you're unsure exist. If you don't know, say so and suggest the manuals or Support.`;
 
+/**
+ * System prompt used when the request carries questionnaire `context` — i.e. a
+ * supplier is filling the questionnaire and asking the in-form assistant for help.
+ * The goal is to make a 60+ question form approachable for non-experts.
+ */
+const QUESTIONNAIRE_GUIDE_PROMPT = `You are "Eco AI", a friendly guide helping a supplier fill in a Product Carbon Footprint (PCF) questionnaire. Many suppliers are not sustainability experts, so keep everything simple and reassuring.
+
+For the question the supplier is on:
+- Explain in plain language what it is really asking.
+- Tell them exactly where to find the data (for example: electricity bills for kWh, the bill of materials or spec sheets for materials, freight invoices for transport, waste contractor statements for waste).
+- Give a short, concrete example answer and the expected units.
+- If they don't have exact data, suggest a sensible way to estimate it and note it can be refined later.
+
+Rules:
+- Be warm, concise, and practical. Default to 2-4 short sentences; use a short bullet list only when steps genuinely help.
+- NEVER invent emission factors, specific numbers, or data on the supplier's behalf. Help them find and enter their own data.
+- Stay on the questionnaire and PCF/ESG topics. Politely decline unrelated requests.
+- Do not use em dashes or en dashes; use commas or colons instead.`;
+
 // Default models per provider (override via env if you like).
 const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.0-flash";
 const GROQ_MODEL = process.env.GROQ_MODEL || "llama-3.3-70b-versatile";
@@ -62,10 +81,10 @@ function normaliseMessages(raw: unknown): ChatMessage[] {
 }
 
 // ── Google Gemini (free tier) ────────────────────────────────────────────────
-async function callGemini(messages: ChatMessage[]): Promise<string> {
+async function callGemini(messages: ChatMessage[], system: string = SYSTEM_PROMPT): Promise<string> {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
     const body = {
-        system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
+        system_instruction: { parts: [{ text: system }] },
         contents: messages.map((m) => ({
             role: m.role === "user" ? "user" : "model",
             parts: [{ text: m.content }],
@@ -81,14 +100,14 @@ async function callGemini(messages: ChatMessage[]): Promise<string> {
 }
 
 // ── Groq (free tier, OpenAI-compatible) ───────────────────────────────────────
-async function callGroq(messages: ChatMessage[]): Promise<string> {
+async function callGroq(messages: ChatMessage[], system: string = SYSTEM_PROMPT): Promise<string> {
     const { data } = await axios.post<any>(
         "https://api.groq.com/openai/v1/chat/completions",
         {
             model: GROQ_MODEL,
             max_tokens: MAX_TOKENS,
             temperature: 0.7,
-            messages: [{ role: "system", content: SYSTEM_PROMPT }, ...messages],
+            messages: [{ role: "system", content: system }, ...messages],
         },
         {
             headers: { "Content-Type": "application/json", Authorization: `Bearer ${process.env.GROQ_API_KEY}` },
@@ -100,13 +119,13 @@ async function callGroq(messages: ChatMessage[]): Promise<string> {
 
 // ── Anthropic Claude ──────────────────────────────────────────────────────────
 let claudeClient: Anthropic | null = null;
-async function callClaude(messages: ChatMessage[]): Promise<string> {
+async function callClaude(messages: ChatMessage[], system: string = SYSTEM_PROMPT): Promise<string> {
     if (!claudeClient) claudeClient = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY as string });
     const response = await claudeClient.messages.create({
         model: CLAUDE_MODEL,
         max_tokens: MAX_TOKENS,
         // Cacheable system prefix (activates once it exceeds the model minimum).
-        system: [{ type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
+        system: [{ type: "text", text: system, cache_control: { type: "ephemeral" } }],
         messages,
     });
     return response.content
@@ -141,7 +160,7 @@ function fallbackReply(text: string): string {
 }
 
 /** Pick the first configured provider, in free-first priority order. */
-function pickProvider(): { name: string; run: (m: ChatMessage[]) => Promise<string> } | null {
+function pickProvider(): { name: string; run: (m: ChatMessage[], system?: string) => Promise<string> } | null {
     if (process.env.GEMINI_API_KEY?.trim()) return { name: "gemini", run: callGemini };
     if (process.env.GROQ_API_KEY?.trim()) return { name: "groq", run: callGroq };
     if (process.env.ANTHROPIC_API_KEY?.trim()) return { name: "claude", run: callClaude };
@@ -155,6 +174,14 @@ export async function aiChat(req: any, res: any) {
     }
     const lastUser = [...messages].reverse().find((m) => m.role === "user");
 
+    // Optional questionnaire context: when the supplier asks for help from inside
+    // the form, the frontend sends which section/question they're on. We switch to
+    // the guide prompt and append the context so answers are grounded.
+    const context = typeof req.body?.context === "string" ? req.body.context.trim() : "";
+    const systemPrompt = context
+        ? `${QUESTIONNAIRE_GUIDE_PROMPT}\n\nThe supplier is currently on this part of the questionnaire:\n${context}`
+        : SYSTEM_PROMPT;
+
     const provider = pickProvider();
     if (!provider) {
         // No key configured → free canned fallback so the widget still responds.
@@ -162,7 +189,7 @@ export async function aiChat(req: any, res: any) {
     }
 
     try {
-        const reply = await provider.run(messages);
+        const reply = await provider.run(messages, systemPrompt);
         const finalReply = reply && reply.trim() ? reply : fallbackReply(lastUser?.content ?? "");
         return res.send(generateResponse(true, "ok", 200, { reply: finalReply, source: provider.name }));
     } catch (err: any) {
