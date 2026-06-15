@@ -11,7 +11,6 @@ import {
   Drawer,
   Badge,
   Tooltip,
-  Alert,
   Input,
   Select,
   Row,
@@ -39,6 +38,7 @@ import userManagementService from "../../lib/userManagementService";
 import type { SupplierOnboarding } from "../../types/userManagement";
 import { QUESTIONNAIRE_SCHEMA } from "../../config/questionnaireSchema";
 import DynamicQuestionnaireForm from "./DynamicQuestionnaireForm";
+import QuestionnaireAssistant from "./QuestionnaireAssistant";
 import QuestionnairePreviewModal from "./QuestionnairePreviewModal";
 import { buildPdfSections } from "./buildPdfSections";
 import {
@@ -823,29 +823,13 @@ const SupplierQuestionnaire: React.FC = () => {
     } catch (error: any) {
       console.error("Validation failed:", error);
 
-      // Extract and display field errors
-      if (error.errorFields) {
-        const errors: Record<string, string[]> = {};
-        error.errorFields.forEach((field: any) => {
-          const fieldName = field.name.join(".");
-          if (!errors[fieldName]) {
-            errors[fieldName] = [];
-          }
-          errors[fieldName].push(field.errors[0]);
-        });
-        setFormErrors(errors);
-      }
-
-      const errorCount = error.errorFields?.length || 0;
-      if (errorCount > 0) {
-        message.error({
-          content: `Please complete ${errorCount} required ${errorCount === 1 ? "field" : "fields"} before continuing.`,
-          duration: 4,
-        });
-      } else {
-        message.error("Please fill in all required fields before continuing.");
-      }
-      // Scroll to first error
+      // Keep it simple: one gentle prompt, then scroll to the first unfilled
+      // question. Ant Design already marks each required field inline, so we
+      // don't surface a separate error summary.
+      message.warning({
+        content: "Please fill in the required questions before continuing.",
+        duration: 3,
+      });
       const firstErrorField = document.querySelector(
         ".ant-form-item-has-error",
       );
@@ -1063,31 +1047,12 @@ const SupplierQuestionnaire: React.FC = () => {
     } catch (error: any) {
       console.error("Submit error:", error);
 
-      // Extract and display field errors
-      if (error.errorFields) {
-        const errors: Record<string, string[]> = {};
-        error.errorFields.forEach((field: any) => {
-          const fieldName = field.name.join(".");
-          if (!errors[fieldName]) {
-            errors[fieldName] = [];
-          }
-          errors[fieldName].push(field.errors[0]);
-        });
-        setFormErrors(errors);
-      }
-
-      const errorCount = error.errorFields?.length || 0;
-      if (errorCount > 0) {
-        message.error({
-          content: `Cannot submit: ${errorCount} required ${errorCount === 1 ? "field" : "fields"} ${errorCount === 1 ? "is" : "are"} incomplete. Please review and complete all required fields.`,
-          duration: 5,
-        });
-      } else {
-        message.error(
-          "Please fix all validation errors before submitting the questionnaire.",
-        );
-      }
-      // Scroll to first error
+      // Same gentle prompt as Next: required fields are marked inline, so just
+      // nudge the supplier and scroll to the first one.
+      message.warning({
+        content: "Please fill in the required questions before submitting.",
+        duration: 3,
+      });
       const firstErrorField = document.querySelector(
         ".ant-form-item-has-error",
       );
@@ -1671,82 +1636,6 @@ const SupplierQuestionnaire: React.FC = () => {
           {/* Main Content */}
           <div className="lg:col-span-3">
             <div className="bg-white rounded-xl shadow-sm p-6 sm:p-8 transition-all duration-300">
-              {/* Error Summary */}
-              {Object.keys(formErrors).length > 0 && (
-                <Alert
-                  message={
-                    <span className="font-semibold">
-                      {Object.keys(formErrors).length}{" "}
-                      {Object.keys(formErrors).length === 1
-                        ? "Error"
-                        : "Errors"}{" "}
-                      Found
-                    </span>
-                  }
-                  description={
-                    <div className="mt-2">
-                      <p className="text-sm mb-2 text-gray-700">
-                        Please review and fix the following{" "}
-                        {Object.keys(formErrors).length === 1
-                          ? "error"
-                          : "errors"}{" "}
-                        before continuing:
-                      </p>
-                      <ul className="list-disc list-inside mt-2 space-y-1">
-                        {Object.entries(formErrors).map(([field, errors]) => {
-                          // Try to get the field label from the current section
-                          const fieldConfig = currentSection?.fields.find(
-                            (f) => f.name === field,
-                          );
-                          const fieldLabel =
-                            fieldConfig?.label ||
-                            field.split(".").pop() ||
-                            field;
-                          const questionNumber =
-                            fieldLabel.match(/^\d+\./)?.[0] || "";
-
-                          return (
-                            <li key={field} className="text-sm text-gray-800">
-                              <span className="font-medium">
-                                {questionNumber ? `${questionNumber} ` : ""}
-                                {fieldLabel.replace(/^\d+\.\s*/, "")}:
-                              </span>{" "}
-                              <span className="text-red-600">
-                                {errors.join(", ")}
-                              </span>
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    </div>
-                  }
-                  type="error"
-                  showIcon
-                  closable
-                  onClose={() => setFormErrors({})}
-                  className="mb-6"
-                  action={
-                    <Button
-                      size="small"
-                      type="text"
-                      onClick={() => {
-                        const firstErrorField = document.querySelector(
-                          ".ant-form-item-has-error",
-                        );
-                        if (firstErrorField) {
-                          firstErrorField.scrollIntoView({
-                            behavior: "smooth",
-                            block: "center",
-                          });
-                        }
-                      }}
-                    >
-                      Go to first error
-                    </Button>
-                  }
-                />
-              )}
-
               <DynamicQuestionnaireForm
                 section={currentSection}
                 initialValues={formData}
@@ -1881,6 +1770,15 @@ const SupplierQuestionnaire: React.FC = () => {
         }}
         isSubmitting={isSaving}
       />
+
+      {/* Eco AI guide — chat + voice help, aware of the current section */}
+      {currentSection && !isViewMode && (
+        <QuestionnaireAssistant
+          section={currentSection}
+          stepIndex={currentStep}
+          totalSteps={QUESTIONNAIRE_SCHEMA.length}
+        />
+      )}
     </div>
   );
 };

@@ -18,6 +18,7 @@ import reports from './subRoutes/reportsRoutes.js';
 import dashboard from './subRoutes/dashboardRoutes.js';
 import notification from './subRoutes/notification.routes.js';
 import aiChat from './subRoutes/aiChatRoutes.js';
+import voice from './subRoutes/voiceRoutes.js';
 import quintari from './subRoutes/quintariRoutes.js';
 
 
@@ -43,6 +44,7 @@ export function routes(app: any) {
     app.use(dashboard);
     app.use(notification);
     app.use(aiChat);
+    app.use(voice);
     app.use(quintari);
     app.get('/health', (_req: any, res: any) => {
         res.send('ok');
