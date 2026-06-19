@@ -2033,6 +2033,7 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
       <Form
         form={form}
         layout="vertical"
+        requiredMark={false}
         initialValues={initialValues}
         onFinish={onFinish}
         onValuesChange={(changedValues, allValues) => {
