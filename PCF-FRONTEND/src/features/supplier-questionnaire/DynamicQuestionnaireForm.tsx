@@ -19,6 +19,7 @@ interface EmissionFactorRow {
   layer2?: string;
   layer3?: string;
   layer4?: string;
+  layer5?: string;
   region?: string;
   ef_value?: number;
   unit?: string;
@@ -598,35 +599,7 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
     return null;
   }
   
-  // Mark each field as a "sub-field" so it can be visually nested under its
-  // parent question: a numbered sub-question ("9.1") or an unnumbered field that
-  // follows a numbered main question ("1.", "2." ...). Info blocks and items that
-  // appear before any numbered question (e.g. General Information
-  // acknowledgements) are not nested.
-  const labelIsMainQuestion = (f: QuestionnaireField) =>
-    typeof f.label === "string" && /^\d+\.\s/.test(f.label);
-  const labelIsNumberedSub = (f: QuestionnaireField) =>
-    typeof f.label === "string" && /^\d+\.\d+/.test(f.label);
-  const subFieldFlags: boolean[] = (() => {
-    const flags: boolean[] = [];
-    let parentSeen = false;
-    for (const f of section.fields) {
-      if (f.type === "info") { flags.push(false); continue; }
-      if (labelIsMainQuestion(f)) { parentSeen = true; flags.push(false); continue; }
-      flags.push(labelIsNumberedSub(f) || parentSeen);
-    }
-    return flags;
-  })();
-
-  const renderField = (field: QuestionnaireField, isSubField = false) => {
-    // Nest sub-fields under their parent (indent + left rule). Wrapping here
-    // means hidden dependency fields render nothing and leave no stray line.
-    const wrap = (content: React.ReactNode): React.ReactNode =>
-      isSubField && content != null ? (
-        <div className="ml-1 pl-4 border-l-2 border-gray-200">{content}</div>
-      ) : (
-        content
-      );
+  const renderField = (field: QuestionnaireField) => {
     // Handle conditional rendering
     if (field.dependency) {
       return (
@@ -680,13 +653,13 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
               }
             }
             
-            return wrap(renderFieldContent(field));
+            return renderFieldContent(field);
           }}
         </Form.Item>
       );
     }
 
-    return wrap(renderFieldContent(field));
+    return renderFieldContent(field);
   };
 
   const renderFieldContent = (field: QuestionnaireField) => {
@@ -869,6 +842,7 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
             label={
               <div className="flex items-center gap-2">
                 <span>{field.label}</span>
+                {field.required && <span className="text-red-500">*</span>}
               </div>
             }
             required={field.required}
@@ -1066,6 +1040,7 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
         label={
           <div className="flex items-center gap-2">
             <span>{field.label}</span>
+            {field.required && <span className="text-red-500">*</span>}
             {field.placeholder && field.type !== 'checkbox' && (
               <Tooltip title={field.placeholder}>
                 <QuestionCircleOutlined className="text-gray-400 text-xs" />
@@ -1285,11 +1260,12 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
                         // after onChange writes to form (Form.List doesn't always
                         // re-render the dependent cells on its own).
                         void distanceTick;
-                        const layerKeys: ("layer1" | "layer2" | "layer3" | "layer4")[] = [
+                        const layerKeys: ("layer1" | "layer2" | "layer3" | "layer4" | "layer5")[] = [
                           "layer1",
                           "layer2",
                           "layer3",
                           "layer4",
+                          "layer5",
                         ];
                         const myLayerKey = layerKeys[col.efLayer - 1];
 
@@ -2096,11 +2072,11 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
         className="space-y-2"
       >
         {section.fields.map((field, index) => (
-          <div
-            key={field.name}
+          <div 
+            key={field.name} 
             className="transition-all duration-200 hover:bg-gray-50 -mx-2 px-2 rounded"
           >
-            {renderField(field, subFieldFlags[index])}
+            {renderField(field)}
           </div>
         ))}
       </Form>

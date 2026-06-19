@@ -38,7 +38,6 @@ import userManagementService from "../../lib/userManagementService";
 import type { SupplierOnboarding } from "../../types/userManagement";
 import { QUESTIONNAIRE_SCHEMA } from "../../config/questionnaireSchema";
 import DynamicQuestionnaireForm from "./DynamicQuestionnaireForm";
-import QuestionnaireAssistant from "./QuestionnaireAssistant";
 import QuestionnairePreviewModal from "./QuestionnairePreviewModal";
 import { buildPdfSections } from "./buildPdfSections";
 import {
@@ -823,13 +822,21 @@ const SupplierQuestionnaire: React.FC = () => {
     } catch (error: any) {
       console.error("Validation failed:", error);
 
-      // Keep it simple: one gentle prompt, then scroll to the first unfilled
-      // question. Ant Design already marks each required field inline, so we
-      // don't surface a separate error summary.
-      message.warning({
-        content: "Please fill in the required questions before continuing.",
-        duration: 3,
-      });
+      // Extract and display field errors
+      if (error.errorFields) {
+        const errors: Record<string, string[]> = {};
+        error.errorFields.forEach((field: any) => {
+          const fieldName = field.name.join(".");
+          if (!errors[fieldName]) {
+            errors[fieldName] = [];
+          }
+          errors[fieldName].push(field.errors[0]);
+        });
+        setFormErrors(errors);
+      }
+
+      message.error("Please fill in the required fields to continue.");
+      // Scroll to first error
       const firstErrorField = document.querySelector(
         ".ant-form-item-has-error",
       );
@@ -1047,12 +1054,21 @@ const SupplierQuestionnaire: React.FC = () => {
     } catch (error: any) {
       console.error("Submit error:", error);
 
-      // Same gentle prompt as Next: required fields are marked inline, so just
-      // nudge the supplier and scroll to the first one.
-      message.warning({
-        content: "Please fill in the required questions before submitting.",
-        duration: 3,
-      });
+      // Extract and display field errors
+      if (error.errorFields) {
+        const errors: Record<string, string[]> = {};
+        error.errorFields.forEach((field: any) => {
+          const fieldName = field.name.join(".");
+          if (!errors[fieldName]) {
+            errors[fieldName] = [];
+          }
+          errors[fieldName].push(field.errors[0]);
+        });
+        setFormErrors(errors);
+      }
+
+      message.error("Please fill in the required fields before submitting.");
+      // Scroll to first error
       const firstErrorField = document.querySelector(
         ".ant-form-item-has-error",
       );
@@ -1770,15 +1786,6 @@ const SupplierQuestionnaire: React.FC = () => {
         }}
         isSubmitting={isSaving}
       />
-
-      {/* Eco AI guide — chat + voice help, aware of the current section */}
-      {currentSection && !isViewMode && (
-        <QuestionnaireAssistant
-          section={currentSection}
-          stepIndex={currentStep}
-          totalSteps={QUESTIONNAIRE_SCHEMA.length}
-        />
-      )}
     </div>
   );
 };

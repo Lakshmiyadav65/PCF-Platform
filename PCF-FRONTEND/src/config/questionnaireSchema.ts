@@ -1,5 +1,4 @@
 import { QUESTIONNAIRE_OPTIONS } from "./questionnaireConfig";
-import { QUESTIONNAIRE_SCHEMA_V3 } from "./questionnaireSchemaV3";
 
 export type FieldType =
   | "text"
@@ -691,6 +690,14 @@ const _FULL_QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
             efSource: "electricity",
             efLayer: 4,
             placeholder: "Select Layer 4",
+          },
+          {
+            name: "layer5",
+            label: "Layer 5",
+            type: "select",
+            efSource: "electricity",
+            efLayer: 5,
+            placeholder: "Select Layer 5",
           },
           {
             name: "quantity",
@@ -1594,6 +1601,14 @@ const _FULL_QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
             placeholder: "Select Layer 4",
           },
           {
+            name: "layer5",
+            label: "Layer 5",
+            type: "select",
+            efSource: "materials",
+            efLayer: 5,
+            placeholder: "Select Layer 5",
+          },
+          {
             name: "composition_percent",
             label:
               "% material composition of total component weight percentage",
@@ -1790,6 +1805,14 @@ const _FULL_QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
             efLayer: 4,
             placeholder: "Select Layer 4",
           },
+          {
+            name: "layer5",
+            label: "Layer 5",
+            type: "select",
+            efSource: "packaging",
+            efLayer: 5,
+            placeholder: "Select Layer 5",
+          },
           // Merged from former Q61 — each packaging row is now self-contained
           // (type + treatment + weight + unit on one row) so the calculator
           // can compute Σ(weight × EF) across N packaging types per BOM.
@@ -1980,6 +2003,14 @@ const _FULL_QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
             efSource: "waste",
             efLayer: 4,
             placeholder: "Select Layer 4",
+          },
+          {
+            name: "layer5",
+            label: "Layer 5",
+            type: "select",
+            efSource: "waste",
+            efLayer: 5,
+            placeholder: "Select Layer 5",
           },
           {
             name: "weight",
@@ -2178,6 +2209,14 @@ const _FULL_QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
             efSource: "vehicle",
             efLayer: 4,
             placeholder: "Select Layer 4",
+          },
+          {
+            name: "layer5",
+            label: "Layer 5",
+            type: "select",
+            efSource: "vehicle",
+            efLayer: 5,
+            placeholder: "Select Layer 5",
           },
           {
             name: "weight",
@@ -2449,12 +2488,5 @@ const buildVisibleQuestionnaireSchema = (
     });
 };
 
-// Legacy (filtered 84-question) schema: General Information + Sections 1-4
-// (10 questions). Preserved for reference and easy revival.
-export const QUESTIONNAIRE_SCHEMA_LEGACY: QuestionnaireSection[] =
+export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] =
   buildVisibleQuestionnaireSchema(_FULL_QUESTIONNAIRE_SCHEMA);
-
-// Active questionnaire: Version 3.0 (Sections A-K, Q1-28), defined in
-// questionnaireSchemaV3.ts. To switch back to the original 10-question form,
-// point QUESTIONNAIRE_SCHEMA at QUESTIONNAIRE_SCHEMA_LEGACY.
-export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = QUESTIONNAIRE_SCHEMA_V3;
