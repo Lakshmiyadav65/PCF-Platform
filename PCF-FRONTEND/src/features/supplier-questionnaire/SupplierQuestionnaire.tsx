@@ -37,6 +37,9 @@ import productService from "../../lib/productService";
 import userManagementService from "../../lib/userManagementService";
 import type { SupplierOnboarding } from "../../types/userManagement";
 import { QUESTIONNAIRE_SCHEMA } from "../../config/questionnaireSchema";
+import { useTranslation } from "react-i18next";
+import { useTranslatedQuestionnaireSchema } from "../../i18n/translateSchema";
+import LanguageSwitcher from "../../i18n/LanguageSwitcher";
 import DynamicQuestionnaireForm from "./DynamicQuestionnaireForm";
 import QuestionnairePreviewModal from "./QuestionnairePreviewModal";
 import { buildPdfSections } from "./buildPdfSections";
@@ -55,6 +58,9 @@ const { Step } = Steps;
 
 const SupplierQuestionnaire: React.FC = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
+  // Questionnaire schema with all display text translated into the current language.
+  const translatedSchema = useTranslatedQuestionnaireSchema();
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const [form] = Form.useForm();
@@ -835,7 +841,7 @@ const SupplierQuestionnaire: React.FC = () => {
         setFormErrors(errors);
       }
 
-      message.error("Please fill in the required fields to continue.");
+      message.error(t("Please fill in the required fields to continue."));
       // Scroll to first error
       const firstErrorField = document.querySelector(
         ".ant-form-item-has-error",
@@ -1067,7 +1073,7 @@ const SupplierQuestionnaire: React.FC = () => {
         setFormErrors(errors);
       }
 
-      message.error("Please fill in the required fields before submitting.");
+      message.error(t("Please fill in the required fields before submitting."));
       // Scroll to first error
       const firstErrorField = document.querySelector(
         ".ant-form-item-has-error",
@@ -1492,18 +1498,20 @@ const SupplierQuestionnaire: React.FC = () => {
             block
             className="!bg-green-600 hover:!bg-green-700 !border-green-600 shadow-lg shadow-green-600/20 h-12 text-base font-medium mb-4"
           >
-            Download PDF Report
+            {t("Download PDF Report")}
           </Button>
 
           <p className="text-sm text-gray-500">
-            Download a copy of your responses for your records. Your data has been recorded and will be used for the Product Carbon Footprint calculation.
+            {t(
+              "Download a copy of your responses for your records. Your data has been recorded and will be used for the Product Carbon Footprint calculation.",
+            )}
           </p>
         </div>
       </div>
     );
   }
 
-  const currentSection = QUESTIONNAIRE_SCHEMA[currentStep];
+  const currentSection = translatedSchema[currentStep];
 
   const renderSidebar = () => {
     const sidebarContent = (
@@ -1511,9 +1519,12 @@ const SupplierQuestionnaire: React.FC = () => {
         {/* Progress Section */}
         <div className="mb-6 pb-6 border-b border-gray-200">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-gray-700">Progress</span>
+            <span className="text-sm font-medium text-gray-700">{t("Progress")}</span>
             <span className="text-sm text-gray-500">
-              {currentStep + 1} of {QUESTIONNAIRE_SCHEMA.length}
+              {t("{{current}} of {{total}}", {
+                current: currentStep + 1,
+                total: QUESTIONNAIRE_SCHEMA.length,
+              })}
             </span>
           </div>
           <Progress
@@ -1527,7 +1538,10 @@ const SupplierQuestionnaire: React.FC = () => {
           />
           <div className="flex items-center justify-between text-xs text-gray-500">
             <span>
-              {answeredCount} of {totalQuestionsCount} questions answered
+              {t("{{answered}} of {{total}} questions answered", {
+                answered: answeredCount,
+                total: totalQuestionsCount,
+              })}
             </span>
             <span>{progressPercentage}%</span>
           </div>
@@ -1548,7 +1562,7 @@ const SupplierQuestionnaire: React.FC = () => {
           onChange={handleStepJump}
           className="questionnaire-sidebar"
         >
-          {QUESTIONNAIRE_SCHEMA.map((section, index) => (
+          {translatedSchema.map((section, index) => (
             <Step
               key={section.id}
               title={
@@ -1600,7 +1614,7 @@ const SupplierQuestionnaire: React.FC = () => {
                 />
               )}
               <h1 className="text-xl font-bold text-gray-900">
-                {isClientMode ? "Manufacturer Own Emissions Questionnaire" : "Supplier Questionnaire"}
+                {isClientMode ? t("Manufacturer Own Emissions Questionnaire") : t("Supplier Questionnaire")}
               </h1>
             </div>
             <div className="flex items-center gap-3">
@@ -1634,7 +1648,7 @@ const SupplierQuestionnaire: React.FC = () => {
                   onClick={handleSaveDraft}
                   loading={isSaving}
                 >
-                  <span className="hidden sm:inline">Save Draft</span>
+                  <span className="hidden sm:inline">{t("Save Draft")}</span>
                 </Button>
               )}
             </div>
@@ -1693,15 +1707,16 @@ const SupplierQuestionnaire: React.FC = () => {
                     icon={<ArrowLeftOutlined />}
                     size="large"
                   >
-                    Previous
+                    {t("Previous")}
                   </Button>
                   {isCreateMode && !isPublicRoute && (
                     <Button
                       onClick={() => {
                         Modal.confirm({
-                          title: "Save and Continue Later?",
-                          content:
+                          title: t("Save and Continue Later?"),
+                          content: t(
                             "Your progress will be saved and you can continue later.",
+                          ),
                           onOk: () => {
                             handleSaveDraft();
                             navigate("/dashboard");
@@ -1710,7 +1725,7 @@ const SupplierQuestionnaire: React.FC = () => {
                       }}
                       size="large"
                     >
-                      Save & Exit
+                      {t("Save & Exit")}
                     </Button>
                   )}
                 </div>
@@ -1724,9 +1739,9 @@ const SupplierQuestionnaire: React.FC = () => {
                         icon={<ArrowRightOutlined />}
                         size="large"
                       >
-                        Next
+                        {t("Next")}
                       </Button>
-                      <Tooltip title="Press Ctrl+Enter">
+                      <Tooltip title={t("Press Ctrl+Enter")}>
                         <span className="text-xs text-gray-400 self-center hidden sm:inline">
                           Ctrl+Enter
                         </span>
@@ -1747,9 +1762,9 @@ const SupplierQuestionnaire: React.FC = () => {
                         size="large"
                         className="bg-green-600 hover:bg-green-700"
                       >
-                        Preview &amp; Submit
+                        {t("Preview & Submit")}
                       </Button>
-                      <Tooltip title="Press Ctrl+Enter">
+                      <Tooltip title={t("Press Ctrl+Enter")}>
                         <span className="text-xs text-gray-400 self-center hidden sm:inline">
                           Ctrl+Enter
                         </span>
@@ -1758,6 +1773,11 @@ const SupplierQuestionnaire: React.FC = () => {
                   )}
                 </div>
               </div>
+
+              {/* Language selector — defaults to English; suppliers can switch any time */}
+              <div className="mt-6 pt-4 border-t border-gray-100 flex justify-center sm:justify-end">
+                <LanguageSwitcher size="middle" />
+              </div>
             </div>
           </div>
         </div>
@@ -1765,7 +1785,7 @@ const SupplierQuestionnaire: React.FC = () => {
 
       {/* Mobile Sidebar Drawer - Always show */}
       <Drawer
-        title="Navigation"
+        title={t("Navigation")}
         placement="left"
         onClose={() => setSidebarVisible(false)}
         open={sidebarVisible}

@@ -4,6 +4,7 @@ import { Form, Input, Select, Checkbox, Radio, InputNumber, Button, Table, Space
 import type { UploadFile, UploadProps } from 'antd';
 import { QUESTIONNAIRE_OPTIONS } from '../../config/questionnaireConfig';
 import { PlusOutlined, DeleteOutlined, UploadOutlined, QuestionCircleOutlined, CheckCircleOutlined, InfoCircleOutlined, LoadingOutlined, FileOutlined } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
 import type { QuestionnaireSection, QuestionnaireField, ApiDropdownType } from '../../config/questionnaireSchema';
 import questionnaireDropdownService, { type DropdownItem } from '../../lib/questionnaireDropdownService';
 // EF cascading dropdowns were wired to the 6 legacy ECOInvent EF tables (now
@@ -153,6 +154,7 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
   isClientMode = false,
   bomComponents = []
 }) => {
+  const { t } = useTranslation();
   const [charCounts, setCharCounts] = useState<Record<string, number>>({});
 
   // State for API dropdown data
@@ -1055,37 +1057,37 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
               ? (() => {
                   const questionNumber = field.label?.match(/^\d+\./)?.[0] || '';
                   if (isSingleCheckbox) {
-                    return questionNumber 
-                      ? `Please check this box to acknowledge ${questionNumber.slice(0, -1)}`
-                      : `This field is required. Please check the box to continue.`;
+                    return questionNumber
+                      ? t('Please check this box to acknowledge {{q}}', { q: questionNumber.slice(0, -1) })
+                      : t('This field is required. Please check the box to continue.');
                   }
                   if (questionNumber) {
-                    return `Please answer ${questionNumber.slice(0, -1)}. This field is required.`;
+                    return t('Please answer {{q}}. This field is required.', { q: questionNumber.slice(0, -1) });
                   }
-                  return `This field is required. Please provide a value.`;
+                  return t('This field is required. Please provide a value.');
                 })()
               : undefined
           },
           // Email validation
           ...(field.name.toLowerCase().includes('email') || field.label?.toLowerCase().includes('e-mail') || field.label?.toLowerCase().includes('email') ? [{
             type: 'email' as const,
-            message: 'Please enter a valid email address (e.g., name@example.com)'
+            message: t('Please enter a valid email address (e.g., name@example.com)')
           }] : []),
           // Number validation
           ...(field.type === 'number' && field.min !== undefined ? [{
             type: 'number' as const,
             min: field.min,
-            message: `Please enter a value of at least ${field.min}`
+            message: t('Please enter a value of at least {{min}}', { min: field.min })
           }] : []),
           ...(field.type === 'number' && field.max !== undefined ? [{
             type: 'number' as const,
             max: field.max,
-            message: `Please enter a value that does not exceed ${field.max}`
+            message: t('Please enter a value that does not exceed {{max}}', { max: field.max })
           }] : []),
           // Text length validation
           ...(field.type === 'text' && field.maxLength ? [{
             max: field.maxLength,
-            message: `Please limit your response to ${field.maxLength} characters or less`
+            message: t('Please limit your response to {{max}} characters or less', { max: field.maxLength })
           }] : [])
         ].filter(Boolean)}
         className={`mb-2 transition-all duration-200 ${fieldErrors.length > 0 ? 'animate-pulse' : ''}`}
@@ -1172,8 +1174,8 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
                     return Promise.reject(
                       new Error(
                         questionNumber
-                          ? `Please add at least one entry to ${questionNumber.slice(0, -1)}. This table is required.`
-                          : 'Please add at least one entry to this table. This field is required.'
+                          ? t('Please add at least one entry to {{q}}. This table is required.', { q: questionNumber.slice(0, -1) })
+                          : t('Please add at least one entry to this table. This field is required.')
                       )
                     );
                   }
@@ -1317,7 +1319,7 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
                               {
                                 required: col.required,
                                 message: col.required
-                                  ? `Please fill in "${col.label}" for this row. This field is required.`
+                                  ? t('Please fill in "{{col}}" for this row. This field is required.', { col: col.label })
                                   : undefined,
                               },
                             ].filter(Boolean)}
@@ -1422,7 +1424,7 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
                               {
                                 required: col.required,
                                 message: col.required
-                                  ? `Please fill in "${col.label}" for this row. This field is required.`
+                                  ? t('Please fill in "{{col}}" for this row. This field is required.', { col: col.label })
                                   : undefined
                               }
                             ].filter(Boolean)}
@@ -1472,7 +1474,7 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
                               {
                                 required: col.required,
                                 message: col.required
-                                  ? `Please fill in "${col.label}" for this row. This field is required.`
+                                  ? t('Please fill in "{{col}}" for this row. This field is required.', { col: col.label })
                                   : undefined
                               }
                             ].filter(Boolean)}
@@ -1557,7 +1559,7 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
                               {
                                 required: col.required,
                                 message: col.required
-                                  ? `Please fill in "${col.label}" for this row. This field is required.`
+                                  ? t('Please fill in "{{col}}" for this row. This field is required.', { col: col.label })
                                   : undefined
                               }
                             ].filter(Boolean)}
@@ -1638,7 +1640,7 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
                               {
                                 required: col.required,
                                 message: col.required
-                                  ? `Please fill in "${col.label}" for this row. This field is required.`
+                                  ? t('Please fill in "{{col}}" for this row. This field is required.', { col: col.label })
                                   : undefined
                               }
                             ].filter(Boolean)}
@@ -1783,7 +1785,7 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
                           // Free source (first row for this MPN)
                           return (
                             <Form.Item name={[fieldRecord.name, col.name]}
-                              rules={[{ required: col.required, message: `Please select "${col.label}"` }].filter(Boolean)}
+                              rules={[{ required: col.required, message: t('Please select "{{col}}"', { col: col.label }) }].filter(Boolean)}
                               className="mb-0">
                               <LocationAutocomplete
                                 placeholder={col.placeholder || 'Search source location...'}
@@ -1806,7 +1808,7 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
                         if (isDestinationCol) {
                           return (
                             <Form.Item name={[fieldRecord.name, col.name]}
-                              rules={[{ required: col.required, message: `Please select "${col.label}"` }].filter(Boolean)}
+                              rules={[{ required: col.required, message: t('Please select "{{col}}"', { col: col.label }) }].filter(Boolean)}
                               className="mb-0">
                               <LocationAutocomplete
                                 placeholder={col.placeholder || 'Search drop location...'}
@@ -1865,7 +1867,7 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
                             {
                               required: col.required,
                               message: col.required
-                                ? `Please fill in "${col.label}" for this row. This field is required.`
+                                ? t('Please fill in "{{col}}" for this row. This field is required.', { col: col.label })
                                 : undefined
                             },
                             ...(col.type === 'number' && col.min !== undefined ? [{
@@ -1994,7 +1996,7 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
                     <span className="text-xs text-gray-500">
                       {fields.length} {fields.length === 1 ? 'item' : 'items'}
                       {field.required && fields.length === 0 && (
-                        <span className="text-red-500 ml-1">(Required - add at least one entry)</span>
+                        <span className="text-red-500 ml-1">{t('(Required - add at least one entry)')}</span>
                       )}
                     </span>
                     <Button

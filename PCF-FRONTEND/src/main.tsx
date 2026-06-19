@@ -4,6 +4,7 @@
 import "@ant-design/v5-patch-for-react-19";
 import ReactDOM from "react-dom/client";
 import App from "./App.tsx";
+import "./i18n";
 import "./index.css";
 // import "antd/dist/reset.css";
 

@@ -82,12 +82,12 @@ export interface QuestionnaireField {
   dependsOnField?: string;
   // For dropdowns sourced from a backend-backed Emission Factors page.
   // efSource is the ef_group name (e.g. "electricity", "fuel", "packaging"),
-  // and efLayer is which Layer (1..4) of the EmissionFactorRow to expose.
+  // and efLayer is which Layer (1..5) of the EmissionFactorRow to expose.
   // Options are filtered by all earlier layers selected on the same row, so
   // L1 -> L2 -> L3 -> L4 acts as a cascade tied to the data imported on the
   // matching ECOInvent EF page.
   efSource?: "electricity" | "fuel" | "packaging" | "vehicle" | "waste" | "materials";
-  efLayer?: 1 | 2 | 3 | 4;
+  efLayer?: 1 | 2 | 3 | 4 | 5;
   // Auto-populate table rows from products_manufactured (Q15)
   autoPopulateFromProducts?: boolean;
   // For file uploads - allow multiple files
