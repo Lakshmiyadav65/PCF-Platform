@@ -491,17 +491,6 @@ export const QUESTIONNAIRE_SCHEMA_V3: QuestionnaireSection[] = [
     title: "Section C: Bill of Materials",
     fields: [
       {
-        // Q8a — gate question: does the supplier have a component- or
-        // material-specific emission factor to share? Optional ("if
-        // available"). Capturing the actual EF value is a planned follow-up.
-        name: "bom.component_specific_ef_available",
-        label:
-          "8a. Can you provide a component-specific or material-specific emission factor? (if available)",
-        type: "radio",
-        options: YES_NO,
-        required: false,
-      },
-      {
         // Q8 — Bill of Materials. Rows pre-fill from the assigned BOM when one
         // is present (autoPopulateFromBom seeds only when the table is empty);
         // the supplier can also add / remove their own rows. Material is
@@ -530,6 +519,16 @@ export const QUESTIONNAIRE_SCHEMA_V3: QuestionnaireSection[] = [
           { name: "recycled", label: "Recycled? (Y/N)", type: "select", options: YES_NO, placeholder: "Y/N" },
           { name: "recycled_carbon_percent", label: "Recycled C (%)", type: "number", min: 0, max: 100, placeholder: "0-100" },
         ],
+      },
+      {
+        // Q8a — does the supplier have a component- or material-specific
+        // emission factor to share? Optional ("if available"). Shown after Q8.
+        name: "bom.component_specific_ef_available",
+        label:
+          "8a. Can you provide a component-specific or material-specific emission factor? (if available)",
+        type: "radio",
+        options: YES_NO,
+        required: false,
       },
       {
         name: "bom.co_products_produced",

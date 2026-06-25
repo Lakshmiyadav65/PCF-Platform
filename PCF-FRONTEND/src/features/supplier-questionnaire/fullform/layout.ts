@@ -289,16 +289,16 @@ export const SECTION_LAYOUT: Record<string, QuestionGroup[]> = {
 
   section_c_bom: [
     {
-      num: "8a",
-      label:
-        "Can you provide a component- or material-specific emission factor?",
-      primaryName: "bom.component_specific_ef_available",
-    },
-    {
       num: "8",
       label:
         "List every material and component in one unit of the product, with biogenic and recycled characteristics.",
       tableName: "bom.bill_of_materials",
+    },
+    {
+      num: "8a",
+      label:
+        "Can you provide a component- or material-specific emission factor?",
+      primaryName: "bom.component_specific_ef_available",
     },
     {
       num: "9",
