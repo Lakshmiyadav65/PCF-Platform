@@ -181,9 +181,10 @@ export function mapV3FormToBackend(
 
     const productionWaste = arr(energy.production_waste).map((w: any) => ({
         productIdOrMpn: str(w.product_id),
-        componentName: str(w.component_name),
-        wasteType: str(w.waste_type),
-        treatmentType: str(w.treatment_type),
+        category: str(w.category),
+        subCategory: str(w.sub_category),
+        materialGroup: str(w.group),
+        specificType: str(w.specific_type),
         quantity: num(w.quantity),
         unit: str(w.unit),
         energyRecovered: yesNoToBool(w.energy_recovered),
@@ -192,9 +193,10 @@ export function mapV3FormToBackend(
 
     const packagingMaterials = arr(packaging.materials_used).map((p: any) => ({
         productIdOrMpn: str(p.product_id),
-        componentName: str(p.component_name),
-        packagingType: str(p.packaging_type),
-        processType: str(p.process_type),
+        category: str(p.category),
+        subCategory: str(p.sub_category),
+        materialGroup: str(p.group),
+        specificType: str(p.specific_type),
         packagingWeight: num(p.packaging_weight),
         unit: str(p.unit),
         region: str(p.region),
@@ -205,8 +207,10 @@ export function mapV3FormToBackend(
 
     const packagingTransport = arr(packaging.transport).map((t: any) => ({
         packagingProductIdOrMpn: str(t.product_id),
-        componentName: str(t.component_name),
-        transportMode: str(t.transport_mode),
+        category: str(t.category),
+        subCategory: str(t.sub_category),
+        materialGroup: str(t.group),
+        specificType: str(t.specific_type),
         weight: num(t.weight),
         unit: str(t.unit),
         distanceKm: num(t.distance_km),
@@ -214,9 +218,10 @@ export function mapV3FormToBackend(
 
     const packagingWaste = arr(packaging.waste).map((w: any) => ({
         mpnCode: str(w.mpn_code),
-        componentName: str(w.component_name),
-        packagingWasteType: str(w.packaging_waste_type),
-        treatmentType: str(w.treatment_type),
+        category: str(w.category),
+        subCategory: str(w.sub_category),
+        materialGroup: str(w.group),
+        specificType: str(w.specific_type),
         quantity: num(w.quantity),
         unit: str(w.unit),
         energyRecovered: yesNoToBool(w.energy_recovered),
