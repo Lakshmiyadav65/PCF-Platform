@@ -229,8 +229,10 @@ export function mapV3FormToBackend(
 
     const transportLegs = arr(transport.legs).map((t: any) => ({
         productIdOrMpn: str(t.product_id),
-        componentName: str(t.component_name),
-        transportMode: str(t.transport_mode),
+        category: str(t.category),
+        subCategory: str(t.sub_category),
+        materialGroup: str(t.group),
+        specificType: str(t.specific_type),
         source: str(t.source),
         destination: str(t.destination),
         weight: num(t.weight),

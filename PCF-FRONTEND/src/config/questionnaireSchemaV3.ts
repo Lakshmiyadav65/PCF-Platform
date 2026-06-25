@@ -775,9 +775,11 @@ export const QUESTIONNAIRE_SCHEMA_V3: QuestionnaireSection[] = [
         placeholder:
           "One row per journey, from delivery notes or freight invoices. Weight in tonnes, distance in km.",
         columns: [
-          { name: "product_id", label: "Product ID / MPN", type: "select", apiDropdown: "bomMaterials", placeholder: "Pick a component" },
-          { name: "component_name", label: "Component Name", type: "text", placeholder: "Auto-filled from MPN", readOnly: true },
-          { name: "transport_mode", label: "Transport Mode", type: "select", options: TRANSPORT_MODES, placeholder: "Select mode" },
+          { name: "product_id", label: "Product ID / MPN", type: "text", placeholder: "MPN" },
+          { name: "category", label: "Category", type: "text", placeholder: "e.g. Road" },
+          { name: "sub_category", label: "Sub category", type: "text", placeholder: "e.g. Truck" },
+          { name: "group", label: "Group", type: "text", placeholder: "e.g. Diesel HGV" },
+          { name: "specific_type", label: "Specific Type", type: "text", placeholder: "e.g. >32t Euro VI" },
           { name: "source", label: "Source", type: "text", placeholder: "Origin" },
           { name: "destination", label: "Destination", type: "text", placeholder: "Destination" },
           { name: "weight", label: "Weight", type: "number", min: 0, placeholder: "0.00" },
