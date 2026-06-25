@@ -311,7 +311,11 @@ const QuestionTable: React.FC<QuestionTableProps> = ({
                     >
                       {columns.map((col, i) => (
                         <div key={col.name} style={cellStyle(col, i)}>
-                          {renderCell(col, row.name)}
+                          {/* width:100% so the control fills the column instead
+                              of shrinking to its content inside the flex cell */}
+                          <div style={{ width: "100%", minWidth: 0 }}>
+                            {renderCell(col, row.name)}
+                          </div>
                         </div>
                       ))}
                       <div style={{ width: 56, flex: "none", display: "flex", alignItems: "center", justifyContent: "center" }}>

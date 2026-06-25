@@ -114,6 +114,9 @@ const SupplierQuestionnaire: React.FC = () => {
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
   const [formErrors, setFormErrors] = useState<Record<string, string[]>>({});
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
+  // The page is fixed-height; the content column is the scroll area, so step
+  // changes must scroll THIS element (not window) back to the top.
+  const contentScrollRef = useRef<HTMLDivElement | null>(null);
   const hasCalledStageUpdateRef = useRef<boolean>(false);
   const [autoPopulatedFields, setAutoPopulatedFields] = useState<Set<string>>(
     new Set(),
@@ -626,6 +629,13 @@ const SupplierQuestionnaire: React.FC = () => {
   useEffect(() => {
     form.setFieldsValue(formData);
   }, [currentStep, formData, form]);
+
+  // Scroll the content panel back to the top on every step change (Next /
+  // Previous / sidebar jump). The window doesn't scroll — the content column
+  // (contentScrollRef) is the overflow container.
+  useEffect(() => {
+    contentScrollRef.current?.scrollTo({ top: 0 });
+  }, [currentStep]);
 
   // Deep merge utility to preserve nested values (especially file fields)
   // preserveTargetArrays: when true, keeps target arrays if source arrays are empty (for auto-save)
@@ -1766,6 +1776,7 @@ const SupplierQuestionnaire: React.FC = () => {
 
         {/* Content */}
         <div
+          ref={contentScrollRef}
           className="ff-scroll"
           style={{
             flex: 1,

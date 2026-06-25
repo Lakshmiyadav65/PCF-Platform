@@ -126,13 +126,10 @@ const QuestionnaireCardForm: React.FC<Props> = ({
         const path = field.name.split(".");
         const existing = form.getFieldValue(path) || [];
         const filled = (Array.isArray(existing) ? existing : []).filter(Boolean);
-        if (filled.length === bomComponents.length) return;
-        const byId: Record<string, any> = {};
-        filled.forEach((r: any) => {
-          if (r && r.bom_id) byId[r.bom_id] = r;
-        });
+        // Seed from the BOM only when the table is still empty. After that the
+        // supplier owns the rows (can add / remove), so we never clobber them.
+        if (filled.length > 0) return;
         const rows = bomComponents.map((c) => ({
-          ...(byId[c.bom_id] || {}),
           bom_id: c.bom_id,
           material_number: c.material_number,
           product_id: c.material_number,

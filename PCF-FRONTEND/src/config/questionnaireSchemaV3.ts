@@ -502,10 +502,12 @@ export const QUESTIONNAIRE_SCHEMA_V3: QuestionnaireSection[] = [
         required: false,
       },
       {
-        // Q8 — one row per BOM component, pre-filled from the client-uploaded
-        // BOM file. MPN + Component Name are read-only display columns; supplier
-        // describes each component but cannot add / delete rows. "Clear" wipes
-        // the editable fields if the supplier wants to refill.
+        // Q8 — Bill of Materials. Rows pre-fill from the assigned BOM when one
+        // is present (autoPopulateFromBom seeds only when the table is empty);
+        // the supplier can also add / remove their own rows. Material is
+        // classified by a 4-level taxonomy (Category / Sub category / Group /
+        // Specific Type), free-text for now until the material/EF taxonomy
+        // dataset is wired.
         name: "bom.bill_of_materials",
         label:
           "8. List every material and component in one unit of the product, with its biogenic and recycled characteristics.",
@@ -513,14 +515,15 @@ export const QUESTIONNAIRE_SCHEMA_V3: QuestionnaireSection[] = [
         addButtonLabel: "Add Material / Component",
         required: true,
         autoPopulateFromBom: true,
-        lockAddRemove: true,
-        placeholder: "One row per BOM component (pre-filled from the BOM you were assigned).",
+        placeholder:
+          "One row per material / component. Pre-filled from your assigned BOM when available; add more rows as needed.",
         columns: [
-          { name: "product_id", label: "Product ID / MPN", type: "text", placeholder: "MPN", readOnly: true },
-          { name: "component_name", label: "Component Name", type: "text", placeholder: "Component name", readOnly: true },
-          { name: "material", label: "Material", type: "select", options: MATERIALS, placeholder: "Select material" },
-          { name: "process", label: "Process", type: "select", options: PROCESSES, placeholder: "Select process" },
-          { name: "mass_percent", label: "Mass (%)", type: "number", required: true, min: 0, max: 100, placeholder: "0-100" },
+          { name: "product_id", label: "Product ID / MPN", type: "text", placeholder: "MPN" },
+          { name: "material", label: "Category (Material)", type: "text", placeholder: "e.g. Metal" },
+          { name: "sub_category", label: "Sub category", type: "text", placeholder: "e.g. Steel" },
+          { name: "group", label: "Group", type: "text", placeholder: "e.g. Alloy steel" },
+          { name: "specific_type", label: "Specific Type", type: "text", placeholder: "e.g. 42CrMo4" },
+          { name: "mass_percent", label: "Mass of component (%)", type: "number", required: true, min: 0, max: 100, placeholder: "0-100" },
           { name: "carbon_percent", label: "Carbon (%)", type: "number", min: 0, max: 100, placeholder: "0-100" },
           { name: "biogenic", label: "Biogenic? (Y/N)", type: "select", options: YES_NO, placeholder: "Y/N" },
           { name: "biogenic_carbon_percent", label: "Biogenic Content (%)", type: "number", min: 0, max: 100, placeholder: "0-100" },
