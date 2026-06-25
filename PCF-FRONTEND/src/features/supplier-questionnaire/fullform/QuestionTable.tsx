@@ -285,7 +285,7 @@ const QuestionTable: React.FC<QuestionTableProps> = ({
               overflow: "hidden",
             }}
           >
-            <div className="ff-scroll" style={{ overflowX: "auto" }}>
+            <div className="qtable-scroll" style={{ overflowX: "auto" }}>
               <div style={{ minWidth: innerMinWidth }}>
                 {/* header */}
                 <div style={{ display: "flex", background: "#f3f6f8", borderBottom: "1px solid #e6ecef" }}>
