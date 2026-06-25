@@ -294,16 +294,3 @@ nav a.sidebar-menu-item.active {
 .sq-fullform .ant-input-number {
   width: 100%;
 }
-
-/* Match primary buttons (Save & continue / Preview & Submit) to the form's
-   design green (#0e9f6e) instead of the app-wide primary (#16a34a). */
-.sq-fullform .ant-btn-primary {
-  background: #0e9f6e !important;
-  border-color: #0e9f6e !important;
-}
-
-.sq-fullform .ant-btn-primary:hover,
-.sq-fullform .ant-btn-primary:focus {
-  background: #0a8c61 !important;
-  border-color: #0a8c61 !important;
-}

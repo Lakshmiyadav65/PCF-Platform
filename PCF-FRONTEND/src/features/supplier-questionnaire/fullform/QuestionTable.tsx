@@ -363,7 +363,7 @@ const QuestionTable: React.FC<QuestionTableProps> = ({
                     fontWeight: 600,
                     color: C.greenDark,
                     background: C.greenSoft,
-                    border: "1px solid #c9efdd",
+                    border: "1px solid #bbf7d0",
                     borderRadius: 9,
                   }}
                 >

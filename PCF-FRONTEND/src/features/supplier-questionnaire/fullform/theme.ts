@@ -9,11 +9,11 @@
 import type { CSSProperties } from "react";
 
 export const C = {
-  green: "#0e9f6e",
-  greenDark: "#0a8c61",
-  greenSoft: "#ecfdf5",
-  greenSoft2: "#e6f7ef",
-  greenTintRow: "#f0faf5",
+  green: "#16a34a",
+  greenDark: "#15803d",
+  greenSoft: "#dcfce7",
+  greenSoft2: "#dcfce7",
+  greenTintRow: "#f0fdf4",
   pageBg: "#f6f8f9",
   panelBg: "#f7fafb",
   cardBorder: "#e9edf1",
@@ -143,7 +143,7 @@ export function radioCard(sel: boolean): {
     label: {
       fontSize: 13.5,
       fontWeight: sel ? 600 : 500,
-      color: sel ? "#15412e" : C.textSoft,
+      color: sel ? "#166534" : C.textSoft,
       lineHeight: 1.4,
     },
   };
@@ -181,7 +181,7 @@ export function consentRow(checked: boolean): {
     label: {
       fontSize: 13.5,
       fontWeight: checked ? 600 : 500,
-      color: checked ? "#15412e" : C.textSoft,
+      color: checked ? "#166534" : C.textSoft,
       lineHeight: 1.45,
     },
   };

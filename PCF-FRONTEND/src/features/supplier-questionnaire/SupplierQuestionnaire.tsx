@@ -1536,13 +1536,13 @@ const SupplierQuestionnaire: React.FC = () => {
       fontWeight: 700,
     };
     if (status === "done")
-      return { ...base, background: "#0e9f6e", color: "#fff", fontSize: 13 };
+      return { ...base, background: "#16a34a", color: "#fff", fontSize: 13 };
     if (status === "current")
       return {
         ...base,
-        background: "#0e9f6e",
+        background: "#16a34a",
         color: "#fff",
-        boxShadow: "0 0 0 4px #d1fae5",
+        boxShadow: "0 0 0 4px #dcfce7",
       };
     return { ...base, background: "#f1f5f9", color: "#94a3b8", fontWeight: 600 };
   };
@@ -1588,7 +1588,7 @@ const SupplierQuestionnaire: React.FC = () => {
           style={{
             height: "100%",
             borderRadius: 99,
-            background: "linear-gradient(90deg,#10b981,#0e9f6e)",
+            background: "linear-gradient(90deg,#22c55e,#16a34a)",
             width: `${progressPercentage}%`,
             transition: "width .3s",
           }}
@@ -1631,7 +1631,7 @@ const SupplierQuestionnaire: React.FC = () => {
               borderRadius: 10,
               marginBottom: 2,
               cursor: canJump ? "pointer" : "default",
-              background: isCur ? "#ecfdf5" : "transparent",
+              background: isCur ? "#f0fdf4" : "transparent",
             }}
           >
             <div style={stepDot(status)}>{done ? "✓" : index + 1}</div>
@@ -1781,7 +1781,7 @@ const SupplierQuestionnaire: React.FC = () => {
                 fontWeight: 700,
                 letterSpacing: ".08em",
                 textTransform: "uppercase",
-                color: "#0e9f6e",
+                color: "#16a34a",
               }}
             >
               Step {currentStep + 1} of {totalSteps}
