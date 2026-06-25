@@ -878,11 +878,14 @@ export const QUESTIONNAIRE_SCHEMA_V3: QuestionnaireSection[] = [
         className: "",
       },
       {
+        // Fixed default (ISO 14067) seeded in SupplierQuestionnaire; disabled
+        // so the supplier does not change it.
         name: "methodology.cross_sectoral_standard",
         label: "Cross-sectoral standard(s)",
         type: "text",
         required: true,
-        placeholder: "e.g. ISO 14067, GHG Protocol Product Standard",
+        disabled: true,
+        placeholder: "ISO 14067",
       },
       {
         name: "methodology.product_sector_pcr",
@@ -892,18 +895,18 @@ export const QUESTIONNAIRE_SCHEMA_V3: QuestionnaireSection[] = [
         placeholder: "e.g. Catena-X PCF Rulebook v4",
       },
       {
-        // IPCC GWP version — supplier fills it. The §4.1 default text is
-        // shown as a placeholder hint, but the supplier types the actual
-        // value (e.g. "AR6 100-year GWP100y") themselves.
+        // Fixed default (AR6) seeded in SupplierQuestionnaire; disabled so the
+        // supplier does not change it.
         name: "methodology.ipcc_gwp_version",
         label: "IPCC GWP version",
         type: "text",
         required: true,
-        placeholder: "e.g. AR6 (100-year GWP100y)",
+        disabled: true,
+        placeholder: "AR6",
       },
       {
         name: "methodology.mass_balancing_used",
-        label: "22. Did you apply mass balancing? (Mass balancing used? Y/N)",
+        label: "Mass balancing used? (Y/N)",
         type: "radio",
         options: YES_NO,
         required: true,
@@ -1101,19 +1104,23 @@ export const QUESTIONNAIRE_SCHEMA_V3: QuestionnaireSection[] = [
         required: true,
       },
       {
+        // Fixed default (seeded in SupplierQuestionnaire); disabled.
         name: "verification.attestation_type",
         label: "Attestation type",
         type: "text",
         required: true,
-        placeholder: "e.g. self-declaration, 3rd-party verified",
+        disabled: true,
+        placeholder: "PCF Program Certification",
         dependency: { field: "verification.pcf_verified", value: "Yes" },
       },
       {
+        // Fixed default (seeded in SupplierQuestionnaire); disabled.
         name: "verification.conformant_standards",
         label: "Conformant standard(s) / PCR(s)",
         type: "text",
         required: true,
-        placeholder: "Standards / PCRs conformed to",
+        disabled: true,
+        placeholder: "Catena-X Product Carbon Footprint Rulebook v4",
         dependency: { field: "verification.pcf_verified", value: "Yes" },
       },
       {
@@ -1164,16 +1171,19 @@ export const QUESTIONNAIRE_SCHEMA_V3: QuestionnaireSection[] = [
         dependency: { field: "verification.pcf_verified", value: "Yes" },
       },
       {
+        // Q27 — the six volume types are pre-listed (fixed rows); the supplier
+        // only enters Volume and Share for each. Rows can't be added/removed.
         name: "verification.volumes",
         label: "27. Which production or product volumes are certified or verified? (optional)",
         type: "table",
-        addButtonLabel: "Add Volume",
         required: false,
-        placeholder: "One row per volume type.",
+        lockAddRemove: true,
+        prefillRows: VOLUME_TYPES.map((t) => ({ volume_type: t })),
+        placeholder: "Volume types are pre-listed; enter the volume and share for each.",
         columns: [
-          { name: "volume_type", label: "Volume type", type: "select", options: VOLUME_TYPES, placeholder: "Select type" },
-          { name: "volume", label: "Volume (units / tonnes)", type: "number", placeholder: "0.00" },
-          { name: "share_percent", label: "Share (%)", type: "number", placeholder: "0-100" },
+          { name: "volume_type", label: "Volume type", type: "text", readOnly: true },
+          { name: "volume", label: "Volume (units / tonnes)", type: "number", min: 0, placeholder: "0.00" },
+          { name: "share_percent", label: "Share (%)", type: "number", min: 0, max: 100, placeholder: "0-100" },
         ],
       },
     ],

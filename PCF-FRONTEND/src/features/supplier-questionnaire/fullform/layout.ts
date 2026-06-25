@@ -430,11 +430,12 @@ export const SECTION_LAYOUT: Record<string, QuestionGroup[]> = {
     },
     {
       num: "22",
-      label: "Did you apply mass balancing or a chain-of-custody scheme?",
-      subsLabel: "Mass balancing & chain-of-custody",
+      label:
+        "Did you apply any Sustainability Certificate or a chain-of-custody scheme?",
+      subsLabel: "Certificate & chain-of-custody",
       subNames: [
-        "methodology.mass_balancing_used",
         "methodology.certificate_scheme",
+        "methodology.mass_balancing_used",
         "methodology.free_attribution_used",
       ],
     },

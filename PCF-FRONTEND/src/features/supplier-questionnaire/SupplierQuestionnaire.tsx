@@ -167,6 +167,8 @@ const SupplierQuestionnaire: React.FC = () => {
     setFormData((prev) => {
       const next = { ...prev };
       const sp = { ...(prev?.scope_period ?? {}) };
+      const methodology = { ...(prev?.methodology ?? {}) };
+      const verification = { ...(prev?.verification ?? {}) };
       let changed = false;
       if (!sp.pcf_type) {
         sp.pcf_type = "1: Retrospective PCF (historical / measured data)";
@@ -176,8 +178,34 @@ const SupplierQuestionnaire: React.FC = () => {
         sp.system_boundary = "Cradle-to-Gate (default, per Catena-X)";
         changed = true;
       }
+      // Q21 fixed defaults — supplier does not change these (disabled fields).
+      if (!methodology.cross_sectoral_standard) {
+        methodology.cross_sectoral_standard = "ISO 14067";
+        changed = true;
+      }
+      if (!methodology.ipcc_gwp_version) {
+        methodology.ipcc_gwp_version = "AR6";
+        changed = true;
+      }
+      // Q22 default — free attribution defaults to No (editable).
+      if (!methodology.free_attribution_used) {
+        methodology.free_attribution_used = "No";
+        changed = true;
+      }
+      // Q26 fixed defaults — attestation type + conformant standards (disabled).
+      if (!verification.attestation_type) {
+        verification.attestation_type = "PCF Program Certification";
+        changed = true;
+      }
+      if (!verification.conformant_standards) {
+        verification.conformant_standards =
+          "Catena-X Product Carbon Footprint Rulebook v4";
+        changed = true;
+      }
       if (!changed) return prev;
       next.scope_period = sp;
+      next.methodology = methodology;
+      next.verification = verification;
       return next;
     });
   }, []);

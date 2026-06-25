@@ -324,7 +324,7 @@ const QuestionTable: React.FC<QuestionTableProps> = ({
                             type="text"
                             size="small"
                             icon={<ReloadOutlined />}
-                            title="Clear this row's data (the BOM component stays)"
+                            title="Clear this row's values"
                             className="hover:bg-amber-50 hover:text-amber-600"
                             onClick={() => {
                               const rowPath = [...fieldPath, row.name];
@@ -389,7 +389,7 @@ const QuestionTable: React.FC<QuestionTableProps> = ({
 
           <div style={{ marginTop: 8, fontSize: 12, color: C.muted }}>
             {rows.length} {rows.length === 1 ? "item" : "items"}
-            {field.lockAddRemove && " (locked to BOM — rows cannot be added or removed)"}
+            {field.lockAddRemove && " (rows are pre-set — fill in the values for each)"}
           </div>
         </div>
       )}

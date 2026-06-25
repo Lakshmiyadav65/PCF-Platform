@@ -319,3 +319,16 @@ nav a.sidebar-menu-item.active {
 .sq-fullform .ant-input-number {
   width: 100%;
 }
+
+/* Disabled "default/locked" fields: show the value in dark, readable text on a
+   subtle grey field so it clearly reads as a pre-filled default, not a faint
+   placeholder. */
+.sq-fullform .ant-input[disabled],
+.sq-fullform .ant-input-disabled,
+.sq-fullform .ant-input-number-disabled .ant-input-number-input,
+.sq-fullform .ant-picker-disabled input {
+  color: #0f1b24 !important;
+  -webkit-text-fill-color: #0f1b24 !important;
+  background-color: #f1f5f9;
+  cursor: default;
+}

@@ -161,6 +161,18 @@ const QuestionnaireCardForm: React.FC<Props> = ({
         return;
       }
 
+      // Fixed-row tables (e.g. Q27 volume types): seed the pre-defined rows.
+      if (Array.isArray(field.prefillRows) && field.prefillRows.length > 0) {
+        if (!hasData && !emptySeededRef.current.has(key)) {
+          form.setFieldValue(
+            path,
+            field.prefillRows.map((r) => ({ ...r })),
+          );
+          emptySeededRef.current.add(key);
+        }
+        return;
+      }
+
       if (rows.length === 0 && !emptySeededRef.current.has(key)) {
         form.setFieldValue(path, [{}]);
         emptySeededRef.current.add(key);
@@ -198,6 +210,17 @@ const QuestionnaireCardForm: React.FC<Props> = ({
       if (changed) form.setFieldValue(path, next);
     });
   }, [section, bomComponents, form, initialValues]);
+
+  // Q22: when a certificate scheme is entered (e.g. ISCC), default
+  // "Mass balancing used?" to Yes — but only if the supplier hasn't answered
+  // it yet, so their choice is never overridden.
+  useEffect(() => {
+    const scheme = getNested(values, "methodology.certificate_scheme");
+    const mb = getNested(values, "methodology.mass_balancing_used");
+    if (scheme && String(scheme).trim() !== "" && (mb === undefined || mb === null || mb === "")) {
+      form.setFieldValue(["methodology", "mass_balancing_used"], "Yes");
+    }
+  }, [values, form]);
 
   // ── Renderers ─────────────────────────────────────────────────────────────
 
@@ -245,7 +268,25 @@ const QuestionnaireCardForm: React.FC<Props> = ({
             <span style={{ fontSize: 13.5, fontWeight: 600, color: C.textSoft, lineHeight: 1.35 }}>
               {displayLabel(field)}
             </span>
-            <Tag field={field} />
+            {field.disabled ? (
+              <span
+                style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  letterSpacing: ".04em",
+                  textTransform: "uppercase",
+                  color: C.greenDark,
+                  background: C.greenSoft,
+                  border: "1px solid #bbf7d0",
+                  borderRadius: 6,
+                  padding: "2px 7px",
+                }}
+              >
+                Default
+              </span>
+            ) : (
+              <Tag field={field} />
+            )}
           </div>
           <Form.Item
             name={field.name.split(".")}

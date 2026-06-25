@@ -250,6 +250,13 @@ export function mapV3FormToBackend(
         biogenicCarbonContentPct: num(d.biogenic_carbon_percent),
     }));
 
+    // Q27 — production / product volumes (fixed volume types).
+    const volumes = arr(verification.volumes).map((v: any) => ({
+        volumeType: str(v.volume_type),
+        volume: num(v.volume),
+        sharePct: num(v.share_percent),
+    }));
+
     return {
         // identifiers
         responseId: ctx.responseId,
@@ -312,7 +319,7 @@ export function mapV3FormToBackend(
         // Q21
         crossSectoralStandards: str(methodology.cross_sectoral_standard),
         productOrSectorSpecificRules: str(methodology.product_sector_pcr),
-        ipccGwpVersion: str(methodology.gwp_version_info),
+        ipccGwpVersion: str(methodology.ipcc_gwp_version),
 
         // Q22
         massBalancingUsed: yesNoToBool(methodology.mass_balancing_used),
@@ -343,9 +350,11 @@ export function mapV3FormToBackend(
         certificateValidTo: str(verification.certificate_valid_to),
         pcfVerified: yesNoToBool(verification.pcf_verified),
         attestationType: str(verification.attestation_type),
+        conformantStandards: str(verification.conformant_standards),
         attestationSchemeStandard: str(verification.attestation_scheme_standard),
         attestationId: str(verification.attestation_id),
         attestationIssuer: str(verification.attestation_issuer),
+        issuerId: str(verification.issuer_id),
         attestationUrl: str(verification.attestation_url),
         attestationCompletedAt: str(verification.attestation_completed_at),
 
@@ -364,6 +373,7 @@ export function mapV3FormToBackend(
         packagingWaste,
         transportLegs,
         biomass,
+        volumes,
     };
 }
 
