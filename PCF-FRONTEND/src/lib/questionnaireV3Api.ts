@@ -126,6 +126,7 @@ export function mapV3FormToBackend(
         carbonPct: num(b.carbon_percent),
         biogenicYN: yesNoToBool(b.biogenic),
         biogenicCarbonPct: num(b.biogenic_carbon_percent),
+        biobasedMassPct: num(b.biobased_mass_percent),
         recycledYN: yesNoToBool(b.recycled),
         recycledCarbonPct: num(b.recycled_carbon_percent),
     }));
