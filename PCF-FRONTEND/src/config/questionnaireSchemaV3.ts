@@ -531,6 +531,23 @@ export const QUESTIONNAIRE_SCHEMA_V3: QuestionnaireSection[] = [
         required: false,
       },
       {
+        // Q8a details — shown only when Q8a = Yes. One row per component /
+        // material with the supplier's own emission factor.
+        name: "bom.component_ef_details",
+        label: "8a.1 Component / material emission factors",
+        type: "table",
+        addButtonLabel: "Add Emission Factor",
+        required: false,
+        dependency: {
+          field: "bom.component_specific_ef_available",
+          value: "Yes",
+        },
+        columns: [
+          { name: "component_material_name", label: "Component / Material Name", type: "text", placeholder: "Component or material name" },
+          { name: "supplier_ef", label: "Supplier EF", type: "text", placeholder: "e.g. 2.5 kgCO₂e/kg" },
+        ],
+      },
+      {
         name: "bom.co_products_produced",
         label: "9. Does the same manufacturing process also yield other saleable co-products?",
         type: "radio",

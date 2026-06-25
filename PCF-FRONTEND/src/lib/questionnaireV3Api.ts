@@ -138,6 +138,12 @@ export function mapV3FormToBackend(
         isPrimaryProduct: yesNoToBool(c.is_primary),
     }));
 
+    // Q8a — supplier-provided component/material-specific emission factors.
+    const componentEfDetails = arr(bomBlock.component_ef_details).map((e: any) => ({
+        componentMaterialName: str(e.component_material_name),
+        supplierEf: str(e.supplier_ef),
+    }));
+
     const electricity = arr(energy.electricity).map((e: any) => ({
         electricityType: str(e.electricity_type),
         generatorType: str(e.generator_type),
@@ -336,6 +342,7 @@ export function mapV3FormToBackend(
         sites,
         bom,
         coProducts,
+        componentEfDetails,
         electricity,
         fuels,
         processGases,

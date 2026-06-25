@@ -5,7 +5,7 @@
  * sub-question panel) while keeping the same Ant Form instance and formData
  * dotted paths, so the wizard's save/submit/auto-save logic is untouched.
  */
-import React, { useEffect, useMemo } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import { Form } from "antd";
 import type { FormInstance } from "antd";
 import type {
@@ -116,29 +116,57 @@ const QuestionnaireCardForm: React.FC<Props> = ({
     }
   }, [initialValues, form]);
 
-  // Q8: seed one row per BOM component (autoPopulateFromBom).
+  // Open tables with editable rows. BOM-backed tables (Q8) seed from the
+  // assigned BOM once when components are present; every other VISIBLE table
+  // opens with one empty row. Two "seed-once" guards mean the supplier can
+  // freely add/remove rows afterwards, and a late-arriving BOM still overrides
+  // a placeholder empty row (different guard keys).
+  const bomSeededRef = useRef<Set<string>>(new Set());
+  const emptySeededRef = useRef<Set<string>>(new Set());
   useEffect(() => {
-    if (!section || !Array.isArray(bomComponents) || bomComponents.length === 0)
-      return;
-    section.fields
-      .filter((f) => f.type === "table" && f.autoPopulateFromBom)
-      .forEach((field) => {
-        const path = field.name.split(".");
-        const existing = form.getFieldValue(path) || [];
-        const filled = (Array.isArray(existing) ? existing : []).filter(Boolean);
-        // Seed from the BOM only when the table is still empty. After that the
-        // supplier owns the rows (can add / remove), so we never clobber them.
-        if (filled.length > 0) return;
-        const rows = bomComponents.map((c) => ({
-          bom_id: c.bom_id,
-          material_number: c.material_number,
-          product_id: c.material_number,
-          component_name: c.component_name,
-          product_name: c.component_name,
-        }));
-        form.setFieldValue(path, rows);
-      });
-  }, [section, bomComponents, form, initialValues]);
+    if (!section) return;
+    section.fields.forEach((field) => {
+      if (field.type !== "table") return;
+      // Don't pre-seed a gated table until its dependency is met (visible).
+      if (field.dependency && !depMet(field.dependency, values)) return;
+      const key = `${section.id}:${field.name}`;
+      const path = field.name.split(".");
+      const existing = form.getFieldValue(path);
+      const rows = Array.isArray(existing) ? existing.filter(Boolean) : [];
+      const hasData = rows.some(
+        (r: any) =>
+          r &&
+          typeof r === "object" &&
+          Object.values(r).some((v) => v !== undefined && v !== null && v !== ""),
+      );
+
+      if (
+        field.autoPopulateFromBom &&
+        Array.isArray(bomComponents) &&
+        bomComponents.length > 0
+      ) {
+        if (!hasData && !bomSeededRef.current.has(key)) {
+          form.setFieldValue(
+            path,
+            bomComponents.map((c) => ({
+              bom_id: c.bom_id,
+              material_number: c.material_number,
+              product_id: c.material_number,
+              component_name: c.component_name,
+              product_name: c.component_name,
+            })),
+          );
+          bomSeededRef.current.add(key);
+        }
+        return;
+      }
+
+      if (rows.length === 0 && !emptySeededRef.current.has(key)) {
+        form.setFieldValue(path, [{}]);
+        emptySeededRef.current.add(key);
+      }
+    });
+  }, [section, bomComponents, form, values, initialValues]);
 
   // Backfill component_name for bomMaterials rows saved before onChange wired it.
   useEffect(() => {
@@ -303,7 +331,11 @@ const QuestionnaireCardForm: React.FC<Props> = ({
 
         {/* gated content vs gate hint */}
         {gated && !gateMet ? (
-          gateHintPanel(group.gateHint || 'Select "Yes" above to continue.')
+          // Show a hint only when one is provided; otherwise render nothing so
+          // the card collapses to just the question when gated off.
+          group.gateHint ? (
+            gateHintPanel(group.gateHint)
+          ) : null
         ) : (
           <>
             {tableField && (

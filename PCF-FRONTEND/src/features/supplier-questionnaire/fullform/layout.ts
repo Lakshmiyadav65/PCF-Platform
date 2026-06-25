@@ -299,17 +299,23 @@ export const SECTION_LAYOUT: Record<string, QuestionGroup[]> = {
       label:
         "Can you provide a component- or material-specific emission factor?",
       primaryName: "bom.component_specific_ef_available",
+      tableName: "bom.component_ef_details",
+      gateName: "bom.component_specific_ef_available",
+      gateValue: "Yes",
+      gateHint:
+        'Select "Yes" above to list each component / material and its emission factor.',
     },
     {
+      // Single card: Yes reveals the co-product table; No shows nothing
+      // (no gateHint, so the gate renders nothing when "No").
       num: "9",
       label:
         "Does the same manufacturing process also yield other scaleable co-products?",
-      help: "Only applies where one process produces more than one sellable output, so shared emissions can be allocated fairly.",
+      help: "Only applies where one process produces more than one sellable output, so shared emissions can be allocated fairly. If yes, list each co-product and its unit price below.",
       primaryName: "bom.co_products_produced",
       tableName: "bom.co_products",
       gateName: "bom.co_products_produced",
       gateValue: "Yes",
-      gateHint: 'Select "Yes" above to list each co-product and its unit price.',
     },
   ],
 
