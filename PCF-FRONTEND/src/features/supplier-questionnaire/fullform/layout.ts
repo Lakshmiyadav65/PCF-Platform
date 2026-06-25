@@ -98,8 +98,12 @@ export const SECTION_META: Record<string, { blurb: string }> = {
 // Cleaner display labels for a few sub-fields whose schema label carries a
 // leading number or punctuation that reads awkwardly inside a follow-up panel.
 export const LABEL_OVERRIDES: Record<string, string> = {
+  "company.legal_name": "Company legal name",
   "company.bpn": "Business Partner Number (BPNL)",
   "company.other_identifier": "Other identifier (DUNS / VAT / CIN)",
+  "product.name": "Product name",
+  "product.declared_unit": "Declared unit",
+  "methodology.mass_balancing_used": "Mass balancing used?",
   "scope_period.reference_start": "Reference period: start",
   "scope_period.reference_end": "Reference period: end",
   "scope_period.validity_start": "Validity: start",
@@ -220,16 +224,20 @@ export const SECTION_LAYOUT: Record<string, QuestionGroup[]> = {
       num: "1",
       label:
         "What is your company's full legal name and registration identifier?",
-      primaryName: "company.legal_name",
-      subsLabel: "Company identifiers",
-      subNames: ["company.company_id", "company.bpn", "company.other_identifier"],
+      subsLabel: "Company details",
+      subNames: [
+        "company.legal_name",
+        "company.company_id",
+        "company.bpn",
+        "company.other_identifier",
+      ],
     },
     {
       num: "2",
       label: "Which product does this carbon footprint apply to?",
-      primaryName: "product.name",
       subsLabel: "Product details",
       subNames: [
+        "product.name",
         "product.product_id",
         "product.description",
         "product.classification",
@@ -239,9 +247,9 @@ export const SECTION_LAYOUT: Record<string, QuestionGroup[]> = {
       num: "3",
       label:
         "In which unit is the carbon footprint declared, and for what quantity?",
-      primaryName: "product.declared_unit",
       subsLabel: "Declared basis",
       subNames: [
+        "product.declared_unit",
         "product.declared_unit_quantity",
         "product.declared_mass",
         "product.price",
@@ -417,9 +425,9 @@ export const SECTION_LAYOUT: Record<string, QuestionGroup[]> = {
     {
       num: "22",
       label: "Did you apply mass balancing or a chain-of-custody scheme?",
-      primaryName: "methodology.mass_balancing_used",
-      subsLabel: "Chain-of-custody",
+      subsLabel: "Mass balancing & chain-of-custody",
       subNames: [
+        "methodology.mass_balancing_used",
         "methodology.certificate_scheme",
         "methodology.free_attribution_used",
       ],

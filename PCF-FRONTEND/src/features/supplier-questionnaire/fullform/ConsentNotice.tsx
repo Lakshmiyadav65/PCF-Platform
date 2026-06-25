@@ -72,14 +72,27 @@ export const ConsentCard: React.FC<{ def: ConsentCardDef }> = ({ def }) => {
             borderRadius: 9,
             background: C.greenSoft,
             color: C.greenDark,
-            fontSize: 15,
+            border: `1px solid ${C.greenSoft2}`,
+            boxShadow: "inset 0 0 0 1px rgba(10,140,97,.06)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             marginTop: 1,
           }}
         >
-          ☑
+          <svg
+            width="17"
+            height="17"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2.6}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M20 6 9 17l-5-5" />
+          </svg>
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 9, flexWrap: "wrap" }}>
