@@ -3,8 +3,7 @@ import dayjs from 'dayjs';
 import { Form, Input, Select, Checkbox, Radio, InputNumber, Button, Table, Space, Typography, Tooltip, Badge, Empty, Tag, Spin, Upload, message, DatePicker } from 'antd';
 import type { UploadFile, UploadProps } from 'antd';
 import { QUESTIONNAIRE_OPTIONS } from '../../config/questionnaireConfig';
-import { PlusOutlined, DeleteOutlined, UploadOutlined, QuestionCircleOutlined, CheckCircleOutlined, InfoCircleOutlined, LoadingOutlined, FileOutlined } from '@ant-design/icons';
-import { useTranslation } from 'react-i18next';
+import { PlusOutlined, DeleteOutlined, UploadOutlined, QuestionCircleOutlined, CheckCircleOutlined, InfoCircleOutlined, LoadingOutlined, FileOutlined, ReloadOutlined } from '@ant-design/icons';
 import type { QuestionnaireSection, QuestionnaireField, ApiDropdownType } from '../../config/questionnaireSchema';
 import questionnaireDropdownService, { type DropdownItem } from '../../lib/questionnaireDropdownService';
 // EF cascading dropdowns were wired to the 6 legacy ECOInvent EF tables (now
@@ -20,7 +19,6 @@ interface EmissionFactorRow {
   layer2?: string;
   layer3?: string;
   layer4?: string;
-  layer5?: string;
   region?: string;
   ef_value?: number;
   unit?: string;
@@ -44,6 +42,90 @@ interface TagsInputProps {
   value?: string[];
   onChange?: (value: string[]) => void;
 }
+
+// Full anti-autofill attribute set covering Chrome / Edge / Safari form
+// history AND every major password manager (1Password, LastPass, Bitwarden,
+// Dashlane, Roboform, ProtonPass). Each vendor reads a different signal, so
+// all of them have to be set together; missing one means that vendor's popup
+// still appears. Random autoComplete value is treated as "off" semantically
+// by Chrome and prevents Chrome from matching the input against saved form
+// history.
+const noAutofillProps = (fieldName: string) =>
+  ({
+    autoComplete: `nope-${fieldName}-${Math.random().toString(36).slice(2, 8)}`,
+    "data-form-type": "other",
+    "data-lpignore": "true",
+    "data-1p-ignore": "true",
+    "data-1password-ignore": "true",
+    "data-op-ignore": "true",
+    "data-bwignore": "true",
+    "data-dashlane-ignore": "true",
+    "data-dashlane-rid": "ignored",
+    "data-protonpass-ignore": "true",
+    "data-form-ignore": "true",
+    spellCheck: false,
+    role: "presentation",
+  }) as any;
+
+// Renders a Component Name cell that mirrors the value set by the sibling
+// MPN dropdown's onChange. Uses BOTH:
+//   1. A `name`-bound Form.Item — this REGISTERS the field with the form
+//      store, which is required for Antd's internal subscription system to
+//      reliably re-render when setFieldValue / setFields writes to it.
+//   2. Form.useWatch on the same path — guarantees a fresh re-render every
+//      time the field value changes, even when `disabled` would otherwise
+//      block the controlled-Input re-render.
+// The bomMaterials onChange writes via form.setFields(...) (NOT setFieldValue)
+// because setFields explicitly notifies field-level subscribers, while
+// setFieldValue's notification is best-effort and was missing the disabled
+// Input in conditional sub-tables (Q9.1 / Q14 / Q16).
+interface ReadOnlyTableCellProps {
+  form: any;
+  // Path inside the parent Form.List (e.g. [0, 'component_name']) — used as
+  // the Form.Item `name` so the field registers correctly inside Form.List.
+  namePath: (string | number)[];
+  // Absolute path from form root — used by Form.useWatch.
+  watchPath: (string | number)[];
+  placeholder?: string;
+}
+const ReadOnlyTableCell: React.FC<ReadOnlyTableCellProps> = ({ form, namePath, watchPath, placeholder }) => {
+  // KEY INSIGHT: do NOT use a `name`-bound Form.Item. Antd Form.Item with
+  // `name` injects its own internally-tracked value into the child Input via
+  // cloneElement, OVERRIDING any `value` prop we set manually. That internal
+  // tracker doesn't always fire on parent-path setFieldValue inside a
+  // Form.List that lives inside an Antd Table cell render — so the injected
+  // value stayed empty even after the BOM dropdown wrote component_name into
+  // the array.
+  //
+  // FIX: read the value ourselves via Form.useWatch on the absolute path, then
+  // render a bare <Input value={...} disabled /> with no Form.Item name
+  // binding. useWatch subscribes to the form store directly and re-renders
+  // this component whenever the cell value changes. The outer empty Form.Item
+  // is kept only for layout consistency with the other cells in the row.
+  // The form store already has component_name (the BOM onChange wrote it via
+  // setFieldValue(fieldPath, fullArray)) so getFieldsValue / submit still
+  // carry it through to the backend — no name binding needed for persistence.
+  void namePath;
+  const value = Form.useWatch(watchPath, form);
+  return (
+    <Form.Item className="mb-0">
+      <Input
+        disabled
+        value={value ?? ""}
+        placeholder={placeholder}
+        style={{ width: "100%" }}
+        autoComplete="off"
+        {...({
+          "data-form-type": "other",
+          "data-lpignore": "true",
+          "data-1p-ignore": "true",
+          "data-bwignore": "true",
+          "data-dashlane-ignore": "true",
+        } as any)}
+      />
+    </Form.Item>
+  );
+};
 
 const TagsInput: React.FC<TagsInputProps> = ({ placeholder, form, fieldName, value = [], onChange }) => {
   const [inputValue, setInputValue] = useState('');
@@ -154,7 +236,6 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
   isClientMode = false,
   bomComponents = []
 }) => {
-  const { t } = useTranslation();
   const [charCounts, setCharCounts] = useState<Record<string, number>>({});
 
   // State for API dropdown data
@@ -219,14 +300,76 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
     }
   }, [form, onValuesChange]);
 
+  // Patch EVERY input / textarea in the form with the full anti-autofill
+  // attribute set. We do this from the DOM because:
+  //   1. Antd Select renders an internal <input class="ant-select-selection-search-input">
+  //      that does NOT forward autoComplete from the Select wrapper.
+  //   2. Antd Input / TextArea forward most props but some browsers / password
+  //      managers still match by `name` or `id` attribute; stamping from DOM
+  //      after mount gives us one extra layer of defence.
+  // Covers Chrome / Edge form history AND every major password manager
+  // (1Password, LastPass, Bitwarden, Dashlane, Roboform). The MutationObserver
+  // catches any inputs added later (Form.List rows, conditional sections,
+  // dropdown opens).
+  useEffect(() => {
+    const stamp = (inp: Element) => {
+      if (inp.getAttribute('data-no-autofill') === '1') return;
+      // DO NOT stamp `readonly` here. The React-side noAutofillProps sets
+      // readOnly + an onFocus handler that strips it — applied together so
+      // the user can type. The DOM stamper has no way to attach the focus
+      // handler, so stamping `readonly` here would freeze the field.
+      inp.setAttribute(
+        'autocomplete',
+        `nope-${Math.random().toString(36).slice(2, 10)}`
+      );
+      inp.setAttribute('data-form-type', 'other');
+      inp.setAttribute('data-lpignore', 'true');
+      inp.setAttribute('data-1p-ignore', 'true');
+      inp.setAttribute('data-1password-ignore', 'true');
+      inp.setAttribute('data-op-ignore', 'true');
+      inp.setAttribute('data-bwignore', 'true');
+      inp.setAttribute('data-dashlane-ignore', 'true');
+      inp.setAttribute('data-dashlane-rid', 'ignored');
+      inp.setAttribute('data-protonpass-ignore', 'true');
+      inp.setAttribute('data-form-ignore', 'true');
+      inp.setAttribute('role', 'presentation');
+      inp.setAttribute('spellcheck', 'false');
+      inp.setAttribute('data-no-autofill', '1');
+    };
+    const patchInputs = (root: ParentNode = document) => {
+      const inputs = root.querySelectorAll(
+        '.ant-select-selection-search-input, .ant-select input, .ant-input, .ant-input-number-input, textarea.ant-input, input[type="text"], input[type="number"], textarea'
+      );
+      inputs.forEach(stamp);
+    };
+    patchInputs();
+    const observer = new MutationObserver((mutations) => {
+      for (const m of mutations) {
+        m.addedNodes.forEach((n) => {
+          if (n.nodeType === 1) patchInputs(n as ParentNode);
+        });
+      }
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, [section]);
+
   // Sync initialValues when they change (for auto-population)
   // This is important for Form.List components that need to be updated when data is auto-populated
   useEffect(() => {
     if (initialValues && Object.keys(initialValues).length > 0) {
       // Only update if there are actual values to set
       const currentValues = form.getFieldsValue();
-      const hasNewData = JSON.stringify(currentValues) !== JSON.stringify(initialValues);
-      
+      // JSON.stringify can throw if a dayjs object has been mangled (its toJSON
+      // calls $d.toISOString which then fails). In that case treat as "changed"
+      // so we still call setFieldsValue — harmless re-render is preferable to crash.
+      let hasNewData = true;
+      try {
+        hasNewData = JSON.stringify(currentValues) !== JSON.stringify(initialValues);
+      } catch {
+        hasNewData = true;
+      }
+
       if (hasNewData) {
         console.log("DynamicQuestionnaireForm: Updating form values from initialValues", initialValues);
         form.setFieldsValue(initialValues);
@@ -317,6 +460,98 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
   useEffect(() => {
     autoPopulateTables();
   }, [autoPopulateTables, initialValues]);
+
+  // Q8 (and any other autoPopulateFromBom table): pre-fill ONE row per BOM
+  // component sourced directly from the immutable client-uploaded BOM.
+  // MPN and Component Name come from the BOM; supplier fills the rest.
+  useEffect(() => {
+    if (!section) return;
+    if (!Array.isArray(bomComponents) || bomComponents.length === 0) return;
+
+    const tablesFromBom = section.fields.filter(
+      (f) => f.type === "table" && f.autoPopulateFromBom
+    );
+    if (tablesFromBom.length === 0) return;
+
+    tablesFromBom.forEach((field) => {
+      const fieldPath = field.name.split(".");
+      const existing = form.getFieldValue(fieldPath) || [];
+      const filledRows = (Array.isArray(existing) ? existing : []).filter(Boolean);
+
+      // If the table is empty OR has the wrong number of rows for this BOM,
+      // rebuild it from the BOM list. We preserve any supplier-entered data
+      // for rows whose bom_id matches a BOM component (so refreshes don't wipe).
+      if (filledRows.length === bomComponents.length) return;
+
+      const existingByBomId: Record<string, any> = {};
+      filledRows.forEach((r: any) => {
+        if (r && r.bom_id) existingByBomId[r.bom_id] = r;
+      });
+
+      const newRows = bomComponents.map((c) => {
+        const prior = existingByBomId[c.bom_id] || {};
+        return {
+          ...prior,
+          bom_id: c.bom_id,
+          material_number: c.material_number,
+          product_id: c.material_number,
+          component_name: c.component_name,
+          product_name: c.component_name,
+        };
+      });
+
+      form.setFieldValue(fieldPath, newRows);
+    });
+  }, [section, bomComponents, form, initialValues]);
+
+  // BACKFILL component_name for any Form.List row that has an MPN selected
+  // (saved in a previous session before the bomMaterials onChange was wired
+  // to write component_name). Without this, opening a draft shows the MPN
+  // dropdown with a value but the readOnly Component Name cell stays empty
+  // because the dropdown's onChange never re-fires on mount.
+  // Runs whenever the section, bomComponents, or initialValues change.
+  useEffect(() => {
+    if (!section) return;
+    if (!Array.isArray(bomComponents) || bomComponents.length === 0) return;
+
+    // For every table that uses bomMaterials dropdown columns, scan its rows
+    // and backfill missing component_name / bom_id / product_name.
+    section.fields.forEach((field) => {
+      if (field.type !== "table") return;
+      const bomCol = field.columns?.find(
+        (c) => c.apiDropdown === "bomMaterials"
+      );
+      if (!bomCol) return;
+
+      const fieldPath = field.name.split(".");
+      const existing = form.getFieldValue(fieldPath);
+      if (!Array.isArray(existing) || existing.length === 0) return;
+
+      let changed = false;
+      const next = existing.map((row: any) => {
+        if (!row || typeof row !== "object") return row;
+        const mpnVal = row[bomCol.name];
+        if (!mpnVal) return row;
+        if (row.component_name && row.product_name) return row;
+        // Look up the BOM material the supplier picked
+        const bom = bomComponents.find(
+          (b) => b.material_number === mpnVal
+        );
+        if (!bom) return row;
+        changed = true;
+        return {
+          ...row,
+          bom_id: row.bom_id || bom.bom_id,
+          material_number: row.material_number || bom.material_number,
+          component_name: row.component_name || bom.component_name,
+          product_name: row.product_name || bom.component_name,
+        };
+      });
+      if (changed) {
+        form.setFieldValue(fieldPath, next);
+      }
+    });
+  }, [section, bomComponents, form, initialValues]);
 
   // Watch for dependency field changes to trigger auto-populate
   // This handles cases where conditional tables become visible
@@ -601,7 +836,35 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
     return null;
   }
   
-  const renderField = (field: QuestionnaireField) => {
+  // Mark each field as a "sub-field" so it can be visually nested under its
+  // parent question: a numbered sub-question ("9.1") or an unnumbered field that
+  // follows a numbered main question ("1.", "2." ...). Info blocks and items that
+  // appear before any numbered question (e.g. General Information
+  // acknowledgements) are not nested.
+  const labelIsMainQuestion = (f: QuestionnaireField) =>
+    typeof f.label === "string" && /^\d+\.\s/.test(f.label);
+  const labelIsNumberedSub = (f: QuestionnaireField) =>
+    typeof f.label === "string" && /^\d+\.\d+/.test(f.label);
+  const subFieldFlags: boolean[] = (() => {
+    const flags: boolean[] = [];
+    let parentSeen = false;
+    for (const f of section.fields) {
+      if (f.type === "info") { flags.push(false); continue; }
+      if (labelIsMainQuestion(f)) { parentSeen = true; flags.push(false); continue; }
+      flags.push(labelIsNumberedSub(f) || parentSeen);
+    }
+    return flags;
+  })();
+
+  const renderField = (field: QuestionnaireField, isSubField = false) => {
+    // Nest sub-fields under their parent (indent + left rule). Wrapping here
+    // means hidden dependency fields render nothing and leave no stray line.
+    const wrap = (content: React.ReactNode): React.ReactNode =>
+      isSubField && content != null ? (
+        <div className="ml-1 pl-4 border-l-2 border-gray-200">{content}</div>
+      ) : (
+        content
+      );
     // Handle conditional rendering
     if (field.dependency) {
       return (
@@ -655,21 +918,48 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
               }
             }
             
-            return renderFieldContent(field);
+            return wrap(renderFieldContent(field));
           }}
         </Form.Item>
       );
     }
 
-    return renderFieldContent(field);
+    return wrap(renderFieldContent(field));
   };
 
   const renderFieldContent = (field: QuestionnaireField) => {
     if (field.type === 'info') {
+      // Render the content sub-div only when there's actual content. Empty
+      // content used to leak an empty <div> with margin under header-style
+      // info blocks (Q21 / Q23 / Q24), making the heading look detached.
+      const hasContent = field.content != null && field.content !== "";
+      // Header-style info blocks (no content, no className) — render as a
+      // plain question heading so it visually groups the sub-fields below
+      // without looking like a callout card.
+      const isHeaderOnly = !hasContent && !field.className;
       return (
-        <div className={`mb-3 transition-all duration-200 ${field.className || ''}`} key={field.name}>
-          {field.label && <h4 className="text-sm font-medium text-gray-900 mb-2">{field.label}</h4>}
-          <div className="text-sm text-gray-600 whitespace-pre-line">{field.content}</div>
+        <div
+          className={
+            isHeaderOnly
+              ? "mb-3"
+              : `mb-3 transition-all duration-200 ${field.className || ''}`
+          }
+          key={field.name}
+        >
+          {field.label && (
+            <h4
+              className={
+                isHeaderOnly
+                  ? "text-base font-semibold text-gray-900 mb-0"
+                  : `text-sm font-medium text-gray-900 ${hasContent ? 'mb-2' : 'mb-0'}`
+              }
+            >
+              {field.label}
+            </h4>
+          )}
+          {hasContent && (
+            <div className="text-sm text-gray-600 whitespace-pre-line">{field.content}</div>
+          )}
         </div>
       );
     }
@@ -681,8 +971,14 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
     const commonProps = {
       placeholder: field.placeholder,
       disabled: field.disabled,
-      style: { width: '100%' }
-    };
+      style: { width: '100%' },
+      // Full anti-autofill kit — see noAutofillProps for why each attribute
+      // is needed. Chrome / Edge form history, 1Password, LastPass, Bitwarden,
+      // Dashlane, Roboform all read different signals; covering all of them is
+      // the only reliable way to stop the dark popovers with prior user input
+      // (the "dsds" / "ssc" / "sd" suggestions seen in the screenshots).
+      ...noAutofillProps(field.name),
+    } as any;
 
     const fieldErrors = formErrors[field.name] || [];
 
@@ -788,13 +1084,13 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
         break;
       case 'radio':
         inputComponent = (
-          <Radio.Group>
+          <Radio.Group disabled={field.disabled}>
             <Space size="large">
               {field.options?.map((opt: any) => {
                 const label = typeof opt === 'string' ? opt : opt.label;
                 const value = typeof opt === 'string' ? opt : opt.value;
                 return (
-                  <Radio key={value} value={value}>
+                  <Radio key={value} value={value} disabled={field.disabled}>
                     {label}
                   </Radio>
                 );
@@ -844,7 +1140,6 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
             label={
               <div className="flex items-center gap-2">
                 <span>{field.label}</span>
-                {field.required && <span className="text-red-500">*</span>}
               </div>
             }
             required={field.required}
@@ -1042,7 +1337,6 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
         label={
           <div className="flex items-center gap-2">
             <span>{field.label}</span>
-            {field.required && <span className="text-red-500">*</span>}
             {field.placeholder && field.type !== 'checkbox' && (
               <Tooltip title={field.placeholder}>
                 <QuestionCircleOutlined className="text-gray-400 text-xs" />
@@ -1057,37 +1351,37 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
               ? (() => {
                   const questionNumber = field.label?.match(/^\d+\./)?.[0] || '';
                   if (isSingleCheckbox) {
-                    return questionNumber
-                      ? t('Please check this box to acknowledge {{q}}', { q: questionNumber.slice(0, -1) })
-                      : t('This field is required. Please check the box to continue.');
+                    return questionNumber 
+                      ? `Please check this box to acknowledge ${questionNumber.slice(0, -1)}`
+                      : `This field is required. Please check the box to continue.`;
                   }
                   if (questionNumber) {
-                    return t('Please answer {{q}}. This field is required.', { q: questionNumber.slice(0, -1) });
+                    return `Please answer ${questionNumber.slice(0, -1)}. This field is required.`;
                   }
-                  return t('This field is required. Please provide a value.');
+                  return `This field is required. Please provide a value.`;
                 })()
               : undefined
           },
           // Email validation
           ...(field.name.toLowerCase().includes('email') || field.label?.toLowerCase().includes('e-mail') || field.label?.toLowerCase().includes('email') ? [{
             type: 'email' as const,
-            message: t('Please enter a valid email address (e.g., name@example.com)')
+            message: 'Please enter a valid email address (e.g., name@example.com)'
           }] : []),
           // Number validation
           ...(field.type === 'number' && field.min !== undefined ? [{
             type: 'number' as const,
             min: field.min,
-            message: t('Please enter a value of at least {{min}}', { min: field.min })
+            message: `Please enter a value of at least ${field.min}`
           }] : []),
           ...(field.type === 'number' && field.max !== undefined ? [{
             type: 'number' as const,
             max: field.max,
-            message: t('Please enter a value that does not exceed {{max}}', { max: field.max })
+            message: `Please enter a value that does not exceed ${field.max}`
           }] : []),
           // Text length validation
           ...(field.type === 'text' && field.maxLength ? [{
             max: field.maxLength,
-            message: t('Please limit your response to {{max}} characters or less', { max: field.maxLength })
+            message: `Please limit your response to ${field.maxLength} characters or less`
           }] : [])
         ].filter(Boolean)}
         className={`mb-2 transition-all duration-200 ${fieldErrors.length > 0 ? 'animate-pulse' : ''}`}
@@ -1174,8 +1468,8 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
                     return Promise.reject(
                       new Error(
                         questionNumber
-                          ? t('Please add at least one entry to {{q}}. This table is required.', { q: questionNumber.slice(0, -1) })
-                          : t('Please add at least one entry to this table. This field is required.')
+                          ? `Please add at least one entry to ${questionNumber.slice(0, -1)}. This table is required.`
+                          : 'Please add at least one entry to this table. This field is required.'
                       )
                     );
                   }
@@ -1231,6 +1525,13 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
                     // absorbs the gap that used to sit after Action.
                     ...(isFlexCol ? {} : {
                       width: (() => {
+                        // ReadOnly columns (MPN / Component Name auto-populated from BOM)
+                        // need enough room for the longest display value. Component-name
+                        // strings like "Brake Caliper Housing" need ~200px.
+                        if (col.readOnly) {
+                          if (col.name === 'product_id' || col.name === 'mpn' || col.name === 'mpn_code') return 160;
+                          return 220;
+                        }
                         // BOM MPN dropdown shows "MPN - Component Name" — needs ~240px.
                         if (col.apiDropdown === 'bomMaterials') return 240;
                         // Static-option selects: pick a width based on the
@@ -1253,6 +1554,30 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
                     render: (_: any, fieldRecord: any) => {
                       const fieldPath = field.name.split('.');
 
+                      // ReadOnly columns (Q8 MPN/Component Name auto-populated
+                      // from the BOM, Q9.1/Q14 Component Name auto-filled when
+                      // the MPN dropdown picks a row). Use a regular named
+                      // Form.Item with a disabled <Input>: same visual style as
+                      // other inputs in the row (white box, same border, same
+                      // height), and Form.Item handles the value subscription
+                      // so setFieldValue from the MPN dropdown propagates here
+                      // automatically — no shouldUpdate / hidden hack needed.
+                      if (col.readOnly) {
+                        return (
+                          <ReadOnlyTableCell
+                            form={form}
+                            // Relative path inside Form.List context — required
+                            // so Form.Item registers the field at the correct
+                            // nested location.
+                            namePath={[fieldRecord.name, col.name]}
+                            // Absolute path from form root — used by useWatch
+                            // to subscribe to the exact store cell.
+                            watchPath={[...fieldPath, fieldRecord.name, col.name]}
+                            placeholder={col.placeholder}
+                          />
+                        );
+                      }
+
                       // Handle Emission Factors cascade dropdown (Layer 1..4 sourced from
                       // the categorized EF API, keyed by col.efSource). Each layer is
                       // filtered by the earlier layers selected on the same row;
@@ -1262,12 +1587,11 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
                         // after onChange writes to form (Form.List doesn't always
                         // re-render the dependent cells on its own).
                         void distanceTick;
-                        const layerKeys: ("layer1" | "layer2" | "layer3" | "layer4" | "layer5")[] = [
+                        const layerKeys: ("layer1" | "layer2" | "layer3" | "layer4")[] = [
                           "layer1",
                           "layer2",
                           "layer3",
                           "layer4",
-                          "layer5",
                         ];
                         const myLayerKey = layerKeys[col.efLayer - 1];
 
@@ -1319,7 +1643,7 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
                               {
                                 required: col.required,
                                 message: col.required
-                                  ? t('Please fill in "{{col}}" for this row. This field is required.', { col: col.label })
+                                  ? `Please fill in "${col.label}" for this row. This field is required.`
                                   : undefined,
                               },
                             ].filter(Boolean)}
@@ -1424,7 +1748,7 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
                               {
                                 required: col.required,
                                 message: col.required
-                                  ? t('Please fill in "{{col}}" for this row. This field is required.', { col: col.label })
+                                  ? `Please fill in "${col.label}" for this row. This field is required.`
                                   : undefined
                               }
                             ].filter(Boolean)}
@@ -1474,7 +1798,7 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
                               {
                                 required: col.required,
                                 message: col.required
-                                  ? t('Please fill in "{{col}}" for this row. This field is required.', { col: col.label })
+                                  ? `Please fill in "${col.label}" for this row. This field is required.`
                                   : undefined
                               }
                             ].filter(Boolean)}
@@ -1531,7 +1855,7 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
                         const bomMaterialOptions: DropdownItem[] = (bomComponents || [])
                           .map((item) => ({
                             id: item.material_number || '',
-                            name: `${item.material_number || ''} - ${item.component_name || ''}`,
+                            name: `${item.material_number || ''} — ${item.component_name || ''}`,
                             bom_id: item.bom_id || '',
                             product_name: item.component_name || '',
                           }))
@@ -1539,18 +1863,17 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
 
                         return (
                           <>
-                            {/* Persist bom_id, material_number, component_name in form state so
-                                getFieldsValue() always returns them and deepMerge never drops them. */}
+                            {/* Persist bom_id and material_number in form state so
+                                getFieldsValue() always returns them and deepMerge never drops them.
+                                IMPORTANT: do NOT register hidden Form.Items here for
+                                component_name / product_name — the readOnly Component Name
+                                column (rendered in another cell) already owns those name paths.
+                                Duplicate Form.Items on the same path collide and break
+                                setFieldValue propagation, leaving Component Name blank. */}
                             <Form.Item name={[fieldRecord.name, 'bom_id']} hidden>
                               <Input type="hidden" />
                             </Form.Item>
                             <Form.Item name={[fieldRecord.name, 'material_number']} hidden>
-                              <Input type="hidden" />
-                            </Form.Item>
-                            <Form.Item name={[fieldRecord.name, 'component_name']} hidden>
-                              <Input type="hidden" />
-                            </Form.Item>
-                            <Form.Item name={[fieldRecord.name, 'product_name']} hidden>
                               <Input type="hidden" />
                             </Form.Item>
                           <Form.Item
@@ -1559,7 +1882,7 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
                               {
                                 required: col.required,
                                 message: col.required
-                                  ? t('Please fill in "{{col}}" for this row. This field is required.', { col: col.label })
+                                  ? `Please fill in "${col.label}" for this row. This field is required.`
                                   : undefined
                               }
                             ].filter(Boolean)}
@@ -1573,37 +1896,59 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
                                 (option?.children as unknown as string)?.toLowerCase().includes(input.toLowerCase())
                               }
                               onChange={(value) => {
-                                // Find the selected item to get the bom_id, material_number, and product_name
+                                // BRUTE-FORCE FIX: setFields and setFieldValue
+                                // with deep paths (e.g. ['a','b',0,'component_name'])
+                                // were NOT propagating to the readOnly Component
+                                // Name cell inside Antd Table's render-prop tree.
+                                // The reliable way: read the WHOLE Form.List array,
+                                // mutate the target row in plain JS, and write the
+                                // whole array back via setFieldValue at the Form.List's
+                                // shallow path. That forces Form.List to re-render
+                                // every row from scratch, so the readOnly cell
+                                // picks up the new component_name guaranteed.
                                 const selectedItem = bomMaterialOptions.find((opt: any) => opt.id === value);
+                                const currentArr = form.getFieldValue(fieldPath);
+                                const arr: any[] = Array.isArray(currentArr) ? [...currentArr] : [];
+                                const idx = fieldRecord.name as number;
+                                const prevRow = arr[idx] || {};
                                 if (selectedItem) {
-                                  // Always set bom_id (even if undefined) to prevent stale values
-                                  form.setFieldValue([...fieldPath, fieldRecord.name, 'bom_id'], selectedItem.bom_id || undefined);
-                                  if (selectedItem.id) {
-                                    form.setFieldValue([...fieldPath, fieldRecord.name, 'material_number'], selectedItem.id);
-                                  }
-                                  if (selectedItem.product_name) {
-                                    form.setFieldValue([...fieldPath, fieldRecord.name, 'component_name'], selectedItem.product_name);
-                                    form.setFieldValue([...fieldPath, fieldRecord.name, 'product_name'], selectedItem.product_name);
-                                  }
+                                  arr[idx] = {
+                                    ...prevRow,
+                                    [col.name]: value,
+                                    bom_id: selectedItem.bom_id || undefined,
+                                    material_number: selectedItem.id,
+                                    component_name: selectedItem.product_name,
+                                    product_name: selectedItem.product_name,
+                                  };
                                 } else {
-                                  // Clear component link when MPN is cleared so rows cannot keep a stale bom_id
-                                  form.setFieldValue([...fieldPath, fieldRecord.name, 'bom_id'], undefined);
-                                  form.setFieldValue([...fieldPath, fieldRecord.name, 'material_number'], undefined);
-                                  form.setFieldValue([...fieldPath, fieldRecord.name, 'component_name'], undefined);
-                                  form.setFieldValue([...fieldPath, fieldRecord.name, 'product_name'], undefined);
+                                  arr[idx] = {
+                                    ...prevRow,
+                                    [col.name]: undefined,
+                                    bom_id: undefined,
+                                    material_number: undefined,
+                                    component_name: undefined,
+                                    product_name: undefined,
+                                  };
                                 }
-
-                                // Transport table: when MPN changes, clear source/destination/distance
-                                // so the row starts fresh for the new component
+                                // Transport table: changing MPN clears the leg's
+                                // source/destination/distance so the row starts
+                                // fresh for the new component.
                                 if (field.name.includes('transport_modes')) {
-                                  form.setFieldValue([...fieldPath, fieldRecord.name, 'source'], undefined);
-                                  form.setFieldValue([...fieldPath, fieldRecord.name, 'source_lat'], undefined);
-                                  form.setFieldValue([...fieldPath, fieldRecord.name, 'source_lng'], undefined);
-                                  form.setFieldValue([...fieldPath, fieldRecord.name, 'destination'], undefined);
-                                  form.setFieldValue([...fieldPath, fieldRecord.name, 'destination_lat'], undefined);
-                                  form.setFieldValue([...fieldPath, fieldRecord.name, 'destination_lng'], undefined);
-                                  form.setFieldValue([...fieldPath, fieldRecord.name, 'distance'], undefined);
+                                  arr[idx] = {
+                                    ...arr[idx],
+                                    source: undefined,
+                                    source_lat: undefined,
+                                    source_lng: undefined,
+                                    destination: undefined,
+                                    destination_lat: undefined,
+                                    destination_lng: undefined,
+                                    distance: undefined,
+                                  };
                                 }
+                                form.setFieldValue(fieldPath, arr);
+                                // Also bump the tick so any cells using module-level
+                                // state (transport distance) re-render too.
+                                setDistanceTick((t) => t + 1);
                               }}
                             >
                               {bomMaterialOptions.map((opt: any) => (
@@ -1640,7 +1985,7 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
                               {
                                 required: col.required,
                                 message: col.required
-                                  ? t('Please fill in "{{col}}" for this row. This field is required.', { col: col.label })
+                                  ? `Please fill in "${col.label}" for this row. This field is required.`
                                   : undefined
                               }
                             ].filter(Boolean)}
@@ -1785,7 +2130,7 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
                           // Free source (first row for this MPN)
                           return (
                             <Form.Item name={[fieldRecord.name, col.name]}
-                              rules={[{ required: col.required, message: t('Please select "{{col}}"', { col: col.label }) }].filter(Boolean)}
+                              rules={[{ required: col.required, message: `Please select "${col.label}"` }].filter(Boolean)}
                               className="mb-0">
                               <LocationAutocomplete
                                 placeholder={col.placeholder || 'Search source location...'}
@@ -1808,7 +2153,7 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
                         if (isDestinationCol) {
                           return (
                             <Form.Item name={[fieldRecord.name, col.name]}
-                              rules={[{ required: col.required, message: t('Please select "{{col}}"', { col: col.label }) }].filter(Boolean)}
+                              rules={[{ required: col.required, message: `Please select "${col.label}"` }].filter(Boolean)}
                               className="mb-0">
                               <LocationAutocomplete
                                 placeholder={col.placeholder || 'Search drop location...'}
@@ -1867,7 +2212,7 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
                             {
                               required: col.required,
                               message: col.required
-                                ? t('Please fill in "{{col}}" for this row. This field is required.', { col: col.label })
+                                ? `Please fill in "${col.label}" for this row. This field is required.`
                                 : undefined
                             },
                             ...(col.type === 'number' && col.min !== undefined ? [{
@@ -1904,6 +2249,7 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
                             <InputNumber
                               placeholder={col.placeholder}
                               style={{ width: '100%' }}
+                              {...noAutofillProps(col.name)}
                               min={col.min}
                               max={col.max}
                               parser={(value) => {
@@ -1927,7 +2273,10 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
                               style={{ width: '100%' }}
                             />
                           ) : (
-                            <Input placeholder={col.placeholder} />
+                            <Input
+                              placeholder={col.placeholder}
+                              {...noAutofillProps(col.name)}
+                            />
                           )}
                         </Form.Item>
                       );
@@ -1939,16 +2288,46 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
                   key: 'action',
                   width: 70,
                   fixed: 'right' as const,
-                  render: (_: any, fieldRecord: any) => (
-                    <Button
-                      type="text"
-                      danger
-                      icon={<DeleteOutlined />}
-                      onClick={() => remove(fieldRecord.name)}
-                      className="hover:bg-red-50"
-                      size="small"
-                    />
-                  )
+                  render: (_: any, fieldRecord: any) =>
+                    field.lockAddRemove ? (
+                      // Q8 (BOM): supplier can wipe editable fields but the row
+                      // stays anchored to its BOM component. ReadOnly columns
+                      // (MPN, Component Name) are preserved.
+                      <Button
+                        type="text"
+                        icon={<ReloadOutlined />}
+                        onClick={() => {
+                          const path = field.name.split('.');
+                          const rowPath = [...path, fieldRecord.name];
+                          const rowValues = form.getFieldValue(rowPath) || {};
+                          const cleared: Record<string, any> = {};
+                          (field.columns || []).forEach((c: QuestionnaireField) => {
+                            if (c.readOnly) {
+                              cleared[c.name] = rowValues[c.name];
+                            } else {
+                              cleared[c.name] = undefined;
+                            }
+                          });
+                          // Preserve hidden link fields (bom_id etc.) too.
+                          ["bom_id", "material_number", "product_name"].forEach((k) => {
+                            if (rowValues[k] !== undefined) cleared[k] = rowValues[k];
+                          });
+                          form.setFieldValue(rowPath, cleared);
+                        }}
+                        className="hover:bg-amber-50 hover:text-amber-600"
+                        size="small"
+                        title="Clear this row's data (the BOM component stays)"
+                      />
+                    ) : (
+                      <Button
+                        type="text"
+                        danger
+                        icon={<DeleteOutlined />}
+                        onClick={() => remove(fieldRecord.name)}
+                        className="hover:bg-red-50"
+                        size="small"
+                      />
+                    )
                 }
               ];
 
@@ -1995,22 +2374,27 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
                   <div className="flex items-center justify-between mt-2">
                     <span className="text-xs text-gray-500">
                       {fields.length} {fields.length === 1 ? 'item' : 'items'}
-                      {field.required && fields.length === 0 && (
-                        <span className="text-red-500 ml-1">{t('(Required - add at least one entry)')}</span>
+                      {field.required && fields.length === 0 && !field.lockAddRemove && (
+                        <span className="text-red-500 ml-1">(Required - add at least one entry)</span>
+                      )}
+                      {field.lockAddRemove && (
+                        <span className="text-gray-500 ml-1">(locked to BOM — rows cannot be added or removed)</span>
                       )}
                     </span>
-                    <Button
-                      type="dashed"
-                      onClick={() => {
-                        // Add empty row — supplier must select MPN/component for each row
-                        // to ensure correct bom_id mapping across multiple components
-                        add();
-                      }}
-                      icon={<PlusOutlined />}
-                      className="hover:border-green-400 hover:text-green-600"
-                    >
-                      {field.addButtonLabel || 'Add Row'}
-                    </Button>
+                    {!field.lockAddRemove && (
+                      <Button
+                        type="dashed"
+                        onClick={() => {
+                          // Add empty row — supplier must select MPN/component for each row
+                          // to ensure correct bom_id mapping across multiple components
+                          add();
+                        }}
+                        icon={<PlusOutlined />}
+                        className="hover:border-green-400 hover:text-green-600"
+                      >
+                        {field.addButtonLabel || 'Add Row'}
+                      </Button>
+                    )}
                   </div>
                 </>
               );
@@ -2035,9 +2419,9 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
       <Form
         form={form}
         layout="vertical"
-        requiredMark={false}
         initialValues={initialValues}
         onFinish={onFinish}
+        autoComplete="off"
         onValuesChange={(changedValues, allValues) => {
           // Call parent's onValuesChange if provided
           onValuesChange?.(changedValues, allValues);
@@ -2075,11 +2459,11 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
         className="space-y-2"
       >
         {section.fields.map((field, index) => (
-          <div 
-            key={field.name} 
+          <div
+            key={field.name}
             className="transition-all duration-200 hover:bg-gray-50 -mx-2 px-2 rounded"
           >
-            {renderField(field)}
+            {renderField(field, subFieldFlags[index])}
           </div>
         ))}
       </Form>
