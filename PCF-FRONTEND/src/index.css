@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&display=swap');
 @import "tailwindcss";
 
 /* ========================================
@@ -254,4 +255,42 @@ nav a.sidebar-menu-item.active {
 
 .chart-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #45A617;
+}
+
+/* ========================================
+   Supplier Questionnaire — Full Form theme (scoped to .sq-fullform)
+   ======================================== */
+.sq-fullform {
+  font-family: Figtree, system-ui, -apple-system, sans-serif;
+}
+
+.sq-fullform ::placeholder {
+  color: #9aa4b2;
+}
+
+.ff-scroll::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+
+.ff-scroll::-webkit-scrollbar-thumb {
+  background: #d3dbe2;
+  border-radius: 8px;
+}
+
+.ff-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Soften Ant controls to match the mock field look */
+.sq-fullform .ant-input,
+.sq-fullform .ant-input-number,
+.sq-fullform .ant-input-affix-wrapper,
+.sq-fullform .ant-picker,
+.sq-fullform .ant-select .ant-select-selector {
+  border-radius: 10px;
+}
+
+.sq-fullform .ant-input-number {
+  width: 100%;
 }

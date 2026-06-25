@@ -725,6 +725,7 @@ ADD COLUMN IF NOT EXISTS platform VARCHAR(255);
             material_number VARCHAR(255),
             product_name VARCHAR(255),
             production_period VARCHAR(255),
+            total_weight_factory_kg NUMERIC(14,2),
             weight_per_unit NUMERIC(10,2),
             unit VARCHAR(50),
             price NUMERIC(10,2),
