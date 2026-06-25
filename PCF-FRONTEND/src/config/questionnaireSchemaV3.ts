@@ -639,12 +639,15 @@ export const QUESTIONNAIRE_SCHEMA_V3: QuestionnaireSection[] = [
         addButtonLabel: "Add Row",
         required: false,
         placeholder:
-          "If this energy is already included in the Q10 electricity total, select 'Yes' under 'Already in Q10' to avoid double-counting.",
+          "If this energy is already included in the Q10 electricity total, select 'Yes' under 'Is it included in Q10?' to avoid double-counting.",
         columns: [
-          { name: "item", label: "Type of Energy", type: "text", placeholder: "e.g. QC lab, server room" },
+          { name: "category", label: "Category (Energy type)", type: "text", placeholder: "e.g. Electricity" },
+          { name: "sub_category", label: "Sub category", type: "text", placeholder: "e.g. Grid" },
+          { name: "group", label: "Group", type: "text", placeholder: "e.g. QC lab" },
+          { name: "specific_type", label: "Specific Type", type: "text", placeholder: "e.g. Server room" },
           { name: "value", label: "Value", type: "number", min: 0, placeholder: "0.00" },
           { name: "unit", label: "Unit", type: "select", options: ENERGY_UNITS, placeholder: "Select unit" },
-          { name: "already_in_q10", label: "Already in Q10? (Y/N)", type: "select", options: YES_NO, placeholder: "Y/N" },
+          { name: "already_in_q10", label: "Is it included in Q10? (Y/N)", type: "select", options: YES_NO, placeholder: "Y/N" },
         ],
       },
       {

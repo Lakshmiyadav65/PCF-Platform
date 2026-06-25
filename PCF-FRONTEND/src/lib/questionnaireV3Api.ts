@@ -170,7 +170,10 @@ export function mapV3FormToBackend(
     }));
 
     const qcItEnergy = arr(energy.qc_it_energy).map((q: any) => ({
-        item: str(q.item),
+        category: str(q.category),
+        subCategory: str(q.sub_category),
+        materialGroup: str(q.group),
+        specificType: str(q.specific_type),
         value: num(q.value),
         unit: str(q.unit),
         alreadyInQ10: yesNoToBool(q.already_in_q10),
