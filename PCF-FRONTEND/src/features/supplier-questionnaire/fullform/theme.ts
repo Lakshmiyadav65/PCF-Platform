@@ -208,5 +208,4 @@ export const numberBadge: CSSProperties = {
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  marginTop: 1,
 };

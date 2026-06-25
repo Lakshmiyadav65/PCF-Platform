@@ -283,7 +283,15 @@ const QuestionnaireCardForm: React.FC<Props> = ({
         <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
           {group.num && <div style={numberBadge}>{group.num}</div>}
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 9, flexWrap: "wrap" }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 9,
+                flexWrap: "wrap",
+                minHeight: 28,
+              }}
+            >
               <span style={{ fontSize: 15.5, fontWeight: 650, lineHeight: 1.4 }}>
                 {group.label}
               </span>
