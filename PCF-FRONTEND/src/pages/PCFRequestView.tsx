@@ -23,6 +23,7 @@ import {
   Descriptions,
 } from "antd";
 import {
+  Check,
   CheckCircle,
   Clock,
   AlertTriangle,
@@ -569,17 +570,58 @@ const PCFRequestView: React.FC = () => {
     { title: "Result Submitted", icon: <FileText size={16} /> },
   ];
 
+  // ---- D2 header-band metrics (computed from BOM list) ----
+  const bomList = requestData.bom_list || [];
+  const grandTotalEmission = bomList.reduce(
+    (sum: number, item: any) =>
+      sum + (Number(item.pcf_total_emission_calculation?.total_pcf_value) || 0),
+    0,
+  );
+  const totalWeightGms = bomList.reduce(
+    (sum: number, item: any) => sum + (Number(item.weight_gms) || 0),
+    0,
+  );
+  const totalCost = bomList.reduce(
+    (sum: number, item: any) => sum + (Number(item.price) || 0),
+    0,
+  );
+  const isPcfCalculated = !!requestData?.pcf_request_stages?.is_pcf_calculated;
+  const heroCurrentStep = getCurrentStep();
+  const isAllComplete = heroCurrentStep >= steps.length;
+  const heroStageLabel = isAllComplete
+    ? "Completed"
+    : steps[heroCurrentStep]?.title || "In Progress";
+  const completedStagesCount = Math.min(getCompletedStepsCount(), steps.length);
+  const formatWeight = (g: number) =>
+    Number.isInteger(g) ? g.toLocaleString("en-IN") : g.toFixed(2);
+  const isHighPriority = ["high", "critical", "urgent"].includes(
+    (requestData.priority || "").toLowerCase(),
+  );
+  const dataCollectionStages = requestData.pcf_data_collection_stage || [];
+  const primarySupplier =
+    dataCollectionStages[0]?.supplier || bomList[0]?.supplier || null;
+  const primarySupplierSubmitted = !!dataCollectionStages[0]?.is_submitted;
+  const currentUserObj: any = authService.getCurrentUser();
+  const currentUserInitial = String(
+    currentUserObj?.user_name ||
+      currentUserObj?.name ||
+      currentUserObj?.email ||
+      "U",
+  )
+    .charAt(0)
+    .toUpperCase();
+
   return (
-    <div className="p-6 mx-auto bg-gray-50 min-h-screen">
-      {/* Back Button */}
-      <Button
-        type="text"
-        icon={<ChevronLeft size={16} />}
+    <div className="bg-[#F4F6F9] min-h-screen px-4 sm:px-6 lg:px-9 py-6 pb-14">
+      <div className="max-w-[1240px] mx-auto">
+      {/* Breadcrumb */}
+      <div
         onClick={() => navigate(-1)}
-        className="mb-4 hover:bg-gray-200"
+        className="flex items-center gap-2 text-sm text-gray-500 font-semibold cursor-pointer w-fit mb-4 hover:text-gray-700 transition-colors"
       >
-        Back to List
-      </Button>
+        <ChevronLeft size={18} />
+        Back to PCF Requests
+      </div>
 
       {/* Rejection Banner */}
       {requestData?.is_rejected && (
@@ -606,283 +648,369 @@ const PCFRequestView: React.FC = () => {
         </div>
       )}
 
-      {/* Header Card */}
-      <Card className="!mb-6 shadow-sm rounded-xl border-gray-200">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-green-100 rounded-xl">
-              <Box size={32} className="text-green-600" />
+      {/* Header Card — D2 green header band */}
+      <div className="mb-5 bg-white border border-[#E6EAF0] rounded-2xl shadow-sm overflow-hidden">
+        {/* Gradient hero band */}
+        <div
+          className="relative overflow-hidden px-7 py-6 text-white"
+          style={{
+            background:
+              "linear-gradient(120deg,#15803D 0%,#16A34A 55%,#0E9F6E 100%)",
+          }}
+        >
+          {/* decorative circle */}
+          <div
+            className="absolute -right-12 -top-12 w-56 h-56 rounded-full pointer-events-none"
+            style={{ background: "rgba(255,255,255,.07)" }}
+          />
+
+          {/* Title row */}
+          <div className="relative flex items-center gap-4">
+            <div
+              className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
+              style={{ background: "rgba(255,255,255,.18)" }}
+            >
+              <Box size={24} className="text-white" />
             </div>
-            <div>
-              <Title level={3} className="m-0 text-gray-800">
+            <div className="flex-1 min-w-0">
+              <div className="text-2xl font-extrabold tracking-tight truncate">
                 {requestData.request_title || "PCF Request"}
-              </Title>
-              <Text type="secondary" className="text-gray-500">
+              </div>
+              <div
+                className="font-mono text-xs mt-1 truncate"
+                style={{ color: "#D1FADF" }}
+              >
                 {requestData.code}
-              </Text>
+                {requestData.product_code ? ` · ${requestData.product_code}` : ""}
+              </div>
             </div>
+            <span
+              className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-bold flex-shrink-0"
+              style={{
+                background: "rgba(255,255,255,.2)",
+                border: "1px solid rgba(255,255,255,.35)",
+              }}
+            >
+              <span
+                className="w-2 h-2 rounded-full"
+                style={{ background: isAllComplete ? "#86EFAC" : "#FCD34D" }}
+              />
+              {heroStageLabel}
+            </span>
           </div>
 
-          <div className="flex flex-wrap gap-3">
-            <div className="bg-white px-2 py-2 rounded-lg flex items-center gap-2 border border-green-100">
-              <span className="bg-green-50 p-2 rounded-md text-green-600 w-10 h-10 flex items-center justify-center">
-                <Clock size={16} className="text-green-600" />
-              </span>
-              <div>
-                <div className="text-xs text-gray-500 font-medium">
-                  Stages Complete
-                </div>
-                <div className="text-sm font-bold text-gray-800">
-                  {getCompletedStepsCount()}/8
-                </div>
-              </div>
-            </div>
-            <div className="bg-white px-2 py-2 rounded-lg flex items-center gap-2 border border-blue-100">
-              <span className="bg-blue-50 p-2 rounded-md text-blue-600 w-10 h-10 flex items-center justify-center">
-                <Calendar size={16} className="text-blue-600" />
-              </span>
-              <div>
-                <div className="text-xs text-gray-500 font-medium">
-                  Due Date
-                </div>
-                <div className="text-sm font-bold text-gray-800">
-                  {new Date(requestData.due_date).toLocaleDateString()}
-                </div>
-              </div>
-            </div>
-            <div className="bg-white px-2 py-2 rounded-lg flex items-center gap-2 border border-orange-100">
-              <span className="bg-orange-50 p-2 rounded-md text-orange-600 w-10 h-10 flex items-center justify-center">
-                <AlertTriangle size={16} className="text-orange-600" />
-              </span>
-              <div>
-                <div className="text-xs text-gray-500 font-medium">
-                  Priority
-                </div>
-                <div className="text-sm font-bold text-gray-800">
-                  {requestData.priority}
-                </div>
-              </div>
-            </div>
-            <div className="bg-white px-2 py-2 rounded-lg flex items-center gap-2 border border-purple-100">
-              <span className="bg-purple-50 p-2 rounded-md text-purple-600 w-10 h-10 flex items-center justify-center">
-                <User size={16} className="text-purple-600" />
-              </span>
-              <div>
-                <div className="text-xs text-gray-500 font-medium">
-                  Submitted By
-                </div>
-                <div className="text-sm font-bold text-gray-800">
-                  {requestData.request_organization || "Unknown"}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <Divider className="my-6" />
-
-        <Row gutter={[24, 24]}>
-          <Col xs={24} md={6}>
-            <Text
-              type="secondary"
-              className="block text-xs uppercase font-bold mb-1"
-            >
-              Reference Number
-            </Text>
-            <Text className="text-gray-800 font-medium">
-              {requestData.code}
-            </Text>
-          </Col>
-          <Col xs={24} md={6}>
-            <Text
-              type="secondary"
-              className="block text-xs uppercase font-bold mb-1"
-            >
-              Submitted On
-            </Text>
-            <Text className="text-gray-800 font-medium">
-              {formatDate(requestData.created_date)}
-            </Text>
-          </Col>
-          <Col xs={24} md={6}>
-            <Text
-              type="secondary"
-              className="block text-xs uppercase font-bold mb-1"
-            >
-              Due Date
-            </Text>
-            <Text className="text-gray-800 font-medium">
-              {formatDate(requestData.due_date)}
-            </Text>
-          </Col>
-          <Col xs={24} md={6}>
-            <Text
-              type="secondary"
-              className="block text-xs uppercase font-bold mb-1"
-            >
-              Current Stage
-            </Text>
-            <Tag color={getCurrentStep() >= steps.length ? "green" : "blue"} className="font-medium">
-              {getCurrentStep() >= steps.length ? "Completed" : steps[getCurrentStep()].title}
-            </Tag>
-          </Col>
-        </Row>
-
-        <Divider className="my-6" />
-
-        <Row gutter={[24, 24]}>
-          <Col xs={24} md={6}>
-            <Text
-              type="secondary"
-              className="block text-xs uppercase font-bold mb-1"
-            >
-              Product Category
-            </Text>
-            <Text className="text-gray-800 font-medium">
-              {requestData.product_category?.name || "N/A"}
-            </Text>
-          </Col>
-          <Col xs={24} md={6}>
-            <Text
-              type="secondary"
-              className="block text-xs uppercase font-bold mb-1"
-            >
-              Component Category
-            </Text>
-            <Text className="text-gray-800 font-medium">
-              {requestData.component_category?.name || "N/A"}
-            </Text>
-          </Col>
-          <Col xs={24} md={6}>
-            <Text
-              type="secondary"
-              className="block text-xs uppercase font-bold mb-1"
-            >
-              Component Type
-            </Text>
-            <Text className="text-gray-800 font-medium">
-              {requestData.component_type?.name || "N/A"}
-            </Text>
-          </Col>
-          <Col xs={24} md={6}>
-            <Text
-              type="secondary"
-              className="block text-xs uppercase font-bold mb-1"
-            >
-              Product Code
-            </Text>
-            <Text className="text-gray-800 font-medium">
-              {requestData.product_code || "N/A"}
-            </Text>
-          </Col>
-        </Row>
-      </Card>
-
-      {/* Stage Stepper */}
-      <Card className="!mb-6 shadow-sm rounded-xl border-gray-200">
-        <Title level={4} className="mb-6">
-          PCF Request Stage
-        </Title>
-        <div className="overflow-x-auto pb-4">
-          <style>{`
-            .pcf-steps-container .ant-steps-item-icon {
-              margin-top: 0 !important;
-              width: 32px !important;
-              height: 32px !important;
-              line-height: 32px !important;
-            }
-            .pcf-steps-container .ant-steps-item-tail {
-              top: 16px !important;
-              height: 2px !important;
-              margin-top: 0 !important;
-              padding: 0 !important;
-              transform: translateY(0) !important;
-            }
-            .pcf-steps-container .ant-steps-item:not(:last-child) .ant-steps-item-tail {
-              right: calc(-50% + 16px) !important;
-            }
-            .pcf-steps-container .ant-steps-item-content {
-              margin-top: 8px !important;
-            }
-            .pcf-steps-container .ant-steps-item-process .ant-steps-item-icon {
-              background: transparent !important;
-            }
-            .pcf-steps-container .ant-steps-item-finish .ant-steps-item-icon {
-              background: transparent !important;
-            }
-            /* Green line for completed steps and line leading to current step */
-            .pcf-steps-container .ant-steps-item-finish .ant-steps-item-tail::after {
-              background-color: #22c55e !important;
-            }
-            /* Gray line for steps after current */
-            .pcf-steps-container .ant-steps-item-wait .ant-steps-item-tail::after {
-              background-color: #d1d5db !important;
-            }
-            /* Green line from last completed to current (in-progress) step */
-            .pcf-steps-container .ant-steps-item-process .ant-steps-item-tail::after {
-              background-color: #d1d5db !important;
-            }
-          `}</style>
-          <div className="pcf-steps-container">
-            <Steps
-              current={getCurrentStep()}
-              labelPlacement="vertical"
-              size="small"
-            >
-              {steps.map((step, index) => {
-                const currentStep = getCurrentStep();
-                const isCompleted = index < currentStep;
-                const isCurrent = index === currentStep;
-                const isPending = index > currentStep;
-
-                return (
-                  <Step
-                    key={index}
-                    title={step.title}
-                    icon={
-                      <div
-                        className={`flex items-center justify-center w-8 h-8 rounded-full border-2 ${
-                          isCompleted
-                            ? "border-green-500 bg-green-50 text-green-600"
-                            : isCurrent
-                              ? "border-yellow-500 bg-yellow-50 text-yellow-600"
-                              : "border-gray-300 bg-white text-gray-400"
-                        }`}
-                      >
-                        {isCompleted ? <CheckCircle size={16} /> : step.icon}
-                      </div>
-                    }
-                  />
-                );
-              })}
-            </Steps>
-          </div>
-        </div>
-
-        {/* Current Stage Details */}
-        <div className={`mt-8 rounded-xl p-6 ${getCurrentStep() >= steps.length ? "bg-green-50 border border-green-200" : "bg-yellow-50 border border-yellow-200"}`}>
-          <div className="flex justify-between items-start">
+          {/* Metrics row */}
+          <div className="relative flex items-end gap-7 mt-6 flex-wrap">
             <div>
-              <h3 className="text-lg font-bold text-gray-800 mb-2">
-                {getCurrentStep() >= steps.length ? "All Stages Completed" : steps[getCurrentStep()].title}
-              </h3>
-              <p className="text-gray-600">
-                {getCurrentStep() >= steps.length
-                  ? "The PCF calculation has been completed and results have been submitted successfully."
-                  : `Stage Description: In this stage, we are processing the ${steps[getCurrentStep()].title.toLowerCase()}.`
-                }
-              </p>
+              <div
+                className="text-[11.5px] font-bold uppercase tracking-wide"
+                style={{ color: "#D1FADF" }}
+              >
+                Total Carbon Footprint
+              </div>
+              <div className="flex items-baseline gap-2 mt-1.5">
+                <span className="text-5xl font-extrabold leading-none tracking-tighter">
+                  {isPcfCalculated ? grandTotalEmission.toFixed(4) : "—"}
+                </span>
+                <span className="text-[15px]" style={{ color: "#D1FADF" }}>
+                  kg CO₂e
+                </span>
+              </div>
             </div>
-            <Tag color={getCurrentStep() >= steps.length ? "success" : "warning"}>
-              {getCurrentStep() >= steps.length ? "Completed" : "In Progress"}
-            </Tag>
+            <div className="flex gap-3 ml-auto flex-wrap">
+              {[
+                {
+                  label: "Weight",
+                  value: totalWeightGms
+                    ? `${formatWeight(totalWeightGms)} g`
+                    : "N/A",
+                  highlight: false,
+                },
+                {
+                  label: "Stages",
+                  value: `${completedStagesCount}/${steps.length}`,
+                  highlight: false,
+                },
+                {
+                  label: "Cost",
+                  value: totalCost
+                    ? `₹${totalCost.toLocaleString("en-IN")}`
+                    : "N/A",
+                  highlight: false,
+                },
+                {
+                  label: "Priority",
+                  value: requestData.priority || "N/A",
+                  highlight: isHighPriority,
+                },
+              ].map((chip) => (
+                <div
+                  key={chip.label}
+                  className="rounded-xl px-4 py-2.5"
+                  style={{ background: "rgba(255,255,255,.14)" }}
+                >
+                  <div
+                    className="text-[10.5px] font-semibold"
+                    style={{ color: "#D1FADF" }}
+                  >
+                    {chip.label}
+                  </div>
+                  <div
+                    className="text-[17px] font-extrabold"
+                    style={chip.highlight ? { color: "#FCD34D" } : undefined}
+                  >
+                    {chip.value}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
-      </Card>
+
+        {/* Detail grid */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-x-7 gap-y-5 px-6 py-6">
+          {[
+            { label: "Reference Number", value: requestData.code, accent: false },
+            {
+              label: "Submitted On",
+              value: formatDate(requestData.created_date),
+              accent: false,
+            },
+            {
+              label: "Due Date",
+              value: formatDate(requestData.due_date),
+              accent: false,
+            },
+            {
+              label: "Current Stage",
+              value: heroStageLabel,
+              accent: isAllComplete,
+            },
+            {
+              label: "Product Category",
+              value: requestData.product_category?.name || "N/A",
+              accent: false,
+            },
+            {
+              label: "Component Category",
+              value: requestData.component_category?.name || "N/A",
+              accent: false,
+            },
+            {
+              label: "Component Type",
+              value: requestData.component_type?.name || "N/A",
+              accent: false,
+            },
+            {
+              label: "Product Code",
+              value: requestData.product_code || "N/A",
+              accent: false,
+            },
+          ].map((cell) => (
+            <div key={cell.label}>
+              <div className="text-[11.5px] uppercase tracking-wide text-gray-400 font-bold">
+                {cell.label}
+              </div>
+              <div
+                className={`text-sm font-bold mt-1.5 ${
+                  cell.accent ? "text-green-700" : "text-gray-800"
+                }`}
+              >
+                {cell.value}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Stage Stepper — custom horizontal tracker */}
+      <div className="mb-5 bg-white border border-[#E6EAF0] rounded-2xl shadow-sm p-6">
+        <div className="flex items-center gap-2.5 mb-7 flex-wrap">
+          <h2 className="m-0 text-[17px] font-extrabold text-gray-900">
+            PCF Request Stages
+          </h2>
+          <span className="text-[12.5px] text-gray-400 font-semibold">
+            {isAllComplete
+              ? `All ${steps.length} stages complete`
+              : `${completedStagesCount} of ${steps.length} stages complete`}
+          </span>
+        </div>
+
+        {/* Tracker */}
+        <div className="overflow-x-auto pb-1">
+          <div className="relative flex items-start justify-between gap-1 min-w-[660px]">
+            {/* base line */}
+            <div className="absolute top-[17px] left-[5%] right-[5%] h-[3px] bg-gray-200 rounded" />
+            {/* progress line */}
+            <div
+              className="absolute top-[17px] left-[5%] h-[3px] rounded"
+              style={{
+                width: `${Math.min(
+                  (completedStagesCount / Math.max(steps.length - 1, 1)) * 90,
+                  90,
+                )}%`,
+                background: "linear-gradient(90deg,#16A34A,#22C55E)",
+              }}
+            />
+            {steps.map((step, index) => {
+              const isCompleted = index < heroCurrentStep;
+              const isCurrent = index === heroCurrentStep;
+              return (
+                <div
+                  key={index}
+                  className="relative z-[1] flex-1 flex flex-col items-center gap-2.5"
+                >
+                  <div
+                    className={`w-9 h-9 rounded-full flex items-center justify-center border-4 border-white ${
+                      isCompleted
+                        ? "bg-[#16A34A] text-white"
+                        : isCurrent
+                          ? "bg-amber-400 text-white"
+                          : "bg-gray-200 text-gray-400"
+                    }`}
+                    style={{
+                      boxShadow: isCompleted
+                        ? "0 0 0 1px #BBF7D0"
+                        : isCurrent
+                          ? "0 0 0 1px #FDE68A"
+                          : "0 0 0 1px #E5E7EB",
+                    }}
+                  >
+                    {isCompleted ? (
+                      <Check size={17} strokeWidth={3} />
+                    ) : isCurrent ? (
+                      <Clock size={15} />
+                    ) : (
+                      <span className="text-[11px] font-bold">{index + 1}</span>
+                    )}
+                  </div>
+                  <div className="text-[11.5px] font-bold text-gray-700 text-center leading-tight max-w-[92px]">
+                    {step.title}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Completion banner */}
+        <div
+          className={`mt-6 flex items-center gap-4 rounded-2xl px-5 py-4 ${
+            isAllComplete
+              ? "bg-[#ECFDF3] border border-[#BBF7D0]"
+              : "bg-amber-50 border border-amber-200"
+          }`}
+        >
+          <div
+            className={`w-[42px] h-[42px] rounded-xl flex items-center justify-center flex-shrink-0 ${
+              isAllComplete ? "bg-[#16A34A]" : "bg-amber-400"
+            }`}
+          >
+            {isAllComplete ? (
+              <Check size={22} strokeWidth={3} className="text-white" />
+            ) : (
+              <Clock size={20} className="text-white" />
+            )}
+          </div>
+          <div className="flex-1 min-w-0">
+            <div
+              className={`text-[15px] font-extrabold ${
+                isAllComplete ? "text-[#14532D]" : "text-amber-900"
+              }`}
+            >
+              {isAllComplete
+                ? "All stages completed"
+                : steps[heroCurrentStep]?.title || "In Progress"}
+            </div>
+            <div
+              className={`text-[13px] mt-0.5 ${
+                isAllComplete ? "text-[#3F6B4E]" : "text-amber-700"
+              }`}
+            >
+              {isAllComplete
+                ? "The PCF calculation has been completed and results submitted successfully."
+                : `In this stage, we are processing the ${
+                    steps[heroCurrentStep]?.title?.toLowerCase() || "request"
+                  }.`}
+            </div>
+          </div>
+          <span
+            className={`flex-shrink-0 rounded-full px-3.5 py-1.5 text-[12.5px] font-bold border ${
+              isAllComplete
+                ? "bg-white text-[#15803D] border-[#BBF7D0]"
+                : "bg-white text-amber-700 border-amber-200"
+            }`}
+          >
+            {isAllComplete ? "Completed" : "In Progress"}
+          </span>
+        </div>
+      </div>
+
+      {/* Supplier Information summary card */}
+      {primarySupplier && (
+        <div className="mb-5 bg-white border border-[#E6EAF0] rounded-2xl shadow-sm p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-11 h-11 rounded-xl bg-[#EFF5FF] flex items-center justify-center flex-shrink-0">
+              <User size={22} className="text-blue-600" />
+            </div>
+            <div className="text-base font-extrabold text-gray-900">
+              Supplier Information
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10">
+            <div className="flex items-center justify-between gap-4 py-2.5 border-b border-[#EEF1F5]">
+              <span className="text-[13.5px] text-gray-400 font-semibold">
+                Supplier Name
+              </span>
+              <span className="text-sm font-bold text-gray-800 text-right">
+                {primarySupplier.supplier_name || "N/A"}
+              </span>
+            </div>
+            <div className="flex items-center justify-between gap-4 py-2.5 border-b border-[#EEF1F5]">
+              <span className="text-[13.5px] text-gray-400 font-semibold">
+                Email
+              </span>
+              <span
+                className="text-sm font-bold text-gray-800 text-right truncate"
+                title={primarySupplier.supplier_email || ""}
+              >
+                {primarySupplier.supplier_email || "N/A"}
+              </span>
+            </div>
+            <div className="flex items-center justify-between gap-4 py-2.5 border-b border-[#EEF1F5]">
+              <span className="text-[13.5px] text-gray-400 font-semibold">
+                Phone
+              </span>
+              <span className="text-sm font-bold text-gray-800 font-mono text-right">
+                {primarySupplier.supplier_phone_number || "N/A"}
+              </span>
+            </div>
+            <div className="flex items-center justify-between gap-4 py-2.5 border-b border-[#EEF1F5]">
+              <span className="text-[13.5px] text-gray-400 font-semibold">
+                Questionnaire
+              </span>
+              <span
+                className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11.5px] font-bold border ${
+                  primarySupplierSubmitted
+                    ? "bg-[#ECFDF3] text-[#15803D] border-[#BBF7D0]"
+                    : "bg-amber-50 text-amber-700 border-amber-200"
+                }`}
+              >
+                {primarySupplierSubmitted ? (
+                  <Check size={12} strokeWidth={3} />
+                ) : (
+                  <Clock size={12} />
+                )}
+                {primarySupplierSubmitted ? "Completed" : "Pending"}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Task Management Section - Show only in Data Collection stage (step 3) */}
       {getCurrentStep() === 3 && (
-        <Card className="!mb-6 shadow-sm rounded-xl border-gray-200">
+        <Card className="!mb-5 !rounded-2xl !border-[#E6EAF0] shadow-sm">
           <div className="flex items-center gap-3 mb-6">
             <div className="p-2 bg-green-100 rounded-lg">
               <CheckSquare size={24} className="text-green-600" />
@@ -1048,327 +1176,329 @@ const PCFRequestView: React.FC = () => {
         </Card>
       )}
 
-      {/* Data Collection Status Section - Show after BOM is verified */}
-      {requestData?.pcf_request_stages?.is_bom_verified && (
-        <Card className="!mb-6 shadow-sm rounded-xl border-gray-200">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Database size={24} className="text-blue-600" />
-              </div>
-              <div>
-                <Title level={4} className="m-0">
-                  Data Collection Status
-                </Title>
-                <Text type="secondary" className="text-sm">
-                  {(() => {
-                    const stages = requestData.pcf_data_collection_stage || [];
-                    const submitted = stages.filter(
-                      (s: any) => s.is_submitted,
-                    ).length;
-                    return `${submitted}/${stages.length} suppliers submitted`;
-                  })()}
-                </Text>
-              </div>
-            </div>
-            {isDataCollectionComplete() ? (
-              <Tag color="success" className="text-sm px-3 py-1">
-                <CheckCircle size={14} className="inline mr-1" />
-                All Completed
-              </Tag>
-            ) : (
-              <Tag color="processing" className="text-sm px-3 py-1">
-                <Clock size={14} className="inline mr-1" />
-                In Progress
-              </Tag>
-            )}
-          </div>
-
-          <div className="space-y-4">
-            {(requestData.pcf_data_collection_stage || []).map(
-              (stage: any, index: number) => (
-                <div
-                  key={stage.id || index}
-                  className={`p-4 rounded-xl border ${
-                    stage.is_submitted
-                      ? "bg-green-50 border-green-200"
-                      : "bg-gray-50 border-gray-200"
+      {/* Status cards: Data Collection + Data Quality Rating (2-col) */}
+      {(requestData?.pcf_request_stages?.is_bom_verified ||
+        getCurrentStep() >= 4) && (
+        <div
+          className={`mb-5 grid gap-5 items-start ${
+            requestData?.pcf_request_stages?.is_bom_verified &&
+            getCurrentStep() >= 4
+              ? "lg:grid-cols-2"
+              : "grid-cols-1"
+          }`}
+        >
+          {/* Data Collection */}
+          {requestData?.pcf_request_stages?.is_bom_verified && (
+            <div className="bg-white border border-[#E6EAF0] rounded-2xl shadow-sm p-6">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-xl bg-[#EFF5FF] flex items-center justify-center flex-shrink-0">
+                  <Database size={22} className="text-blue-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-base font-extrabold text-gray-900">
+                    Data Collection
+                  </div>
+                  <div className="text-[12.5px] text-gray-400 font-semibold mt-0.5">
+                    {(() => {
+                      const stages =
+                        requestData.pcf_data_collection_stage || [];
+                      const submitted = stages.filter(
+                        (s: any) => s.is_submitted,
+                      ).length;
+                      return `${submitted} / ${stages.length} suppliers submitted`;
+                    })()}
+                  </div>
+                </div>
+                <span
+                  className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11.5px] font-bold border flex-shrink-0 ${
+                    isDataCollectionComplete()
+                      ? "bg-[#ECFDF3] text-[#15803D] border-[#BBF7D0]"
+                      : "bg-amber-50 text-amber-700 border-amber-200"
                   }`}
                 >
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-3">
+                  {isDataCollectionComplete() ? (
+                    <Check size={13} strokeWidth={3} />
+                  ) : (
+                    <Clock size={13} />
+                  )}
+                  {isDataCollectionComplete() ? "All Completed" : "In Progress"}
+                </span>
+              </div>
+
+              <div className="mt-4 space-y-3">
+                {(requestData.pcf_data_collection_stage || []).map(
+                  (stage: any, index: number) => (
+                    <div
+                      key={stage.id || index}
+                      className="bg-[#F8FAFB] border border-[#EEF1F5] rounded-xl p-4"
+                    >
+                      <div className="flex items-start gap-3">
                         <div
-                          className={`p-2 rounded-full ${
+                          className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${
                             stage.is_submitted
-                              ? "bg-green-100 text-green-600"
-                              : "bg-gray-200 text-gray-500"
+                              ? "bg-[#ECFDF3] text-[#16A34A]"
+                              : "bg-gray-200 text-gray-400"
                           }`}
                         >
                           {stage.is_submitted ? (
-                            <CheckCircle size={20} />
+                            <Check size={15} strokeWidth={3} />
                           ) : (
-                            <XCircle size={20} />
+                            <XCircle size={15} />
                           )}
                         </div>
-                        <div>
-                          <Title level={5} className="m-0">
-                            {stage.supplier?.supplier_name ||
-                              "Unknown Supplier"}
-                          </Title>
-                          <Text type="secondary" className="text-xs">
-                            {stage.supplier?.code || "N/A"}
-                          </Text>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm ml-11">
-                        <div className="flex items-center gap-2">
-                          <Mail size={14} className="text-gray-400" />
-                          <Text className="text-gray-600">
-                            {stage.supplier?.supplier_email || "N/A"}
-                          </Text>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Phone size={14} className="text-gray-400" />
-                          <Text className="text-gray-600">
-                            {stage.supplier?.supplier_phone_number || "N/A"}
-                          </Text>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Calendar size={14} className="text-gray-400" />
-                          <Text className="text-gray-600">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-3 flex-wrap">
+                            <div>
+                              <div className="text-[14.5px] font-extrabold text-gray-900">
+                                {stage.supplier?.supplier_name ||
+                                  "Unknown Supplier"}
+                              </div>
+                              <div className="font-mono text-xs text-gray-400">
+                                {stage.supplier?.code || "N/A"}
+                              </div>
+                            </div>
+                            {stage.is_submitted ? (
+                              <Button
+                                type="primary"
+                                size="small"
+                                icon={<Eye size={15} />}
+                                onClick={() =>
+                                  fetchQuestionnaireResponses(
+                                    stage.supplier?.sup_id,
+                                    stage.supplier?.supplier_name || "Supplier",
+                                  )
+                                }
+                                className="!bg-[#16A34A] hover:!bg-[#15803D] !border-[#16A34A] !rounded-[10px] !font-bold"
+                              >
+                                View Responses
+                              </Button>
+                            ) : (
+                              stage.supplier?.sup_id &&
+                              id && (
+                                <Button
+                                  size="small"
+                                  icon={<Send size={14} />}
+                                  loading={
+                                    resendingSupId === stage.supplier.sup_id
+                                  }
+                                  disabled={!stage.supplier?.supplier_email}
+                                  onClick={() =>
+                                    handleResendSupplierEmail(
+                                      stage.supplier.sup_id,
+                                      stage.supplier.supplier_name ||
+                                        "this supplier",
+                                      stage.supplier?.supplier_email || "",
+                                    )
+                                  }
+                                  className="!rounded-[10px] !font-bold"
+                                >
+                                  Resend Email
+                                </Button>
+                              )
+                            )}
+                          </div>
+                          <div className="flex flex-wrap gap-x-4 gap-y-1.5 mt-3 text-[12.5px] text-gray-500">
+                            <span className="inline-flex items-center gap-1.5 min-w-0">
+                              <Mail
+                                size={14}
+                                className="text-gray-400 flex-shrink-0"
+                              />
+                              <span className="truncate">
+                                {stage.supplier?.supplier_email || "N/A"}
+                              </span>
+                            </span>
+                            <span className="inline-flex items-center gap-1.5">
+                              <Phone size={14} className="text-gray-400" />
+                              {stage.supplier?.supplier_phone_number || "N/A"}
+                            </span>
+                          </div>
+                          <div
+                            className={`flex items-center gap-1.5 mt-2 text-xs font-semibold ${
+                              stage.completed_date
+                                ? "text-[#15803D]"
+                                : "text-gray-400"
+                            }`}
+                          >
+                            <Clock size={13} />
                             {stage.completed_date
-                              ? `Completed: ${formatDate(stage.completed_date)}`
+                              ? `Completed ${formatDate(stage.completed_date)}`
                               : "Not yet submitted"}
-                          </Text>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-3 ml-4">
-                      {stage.is_submitted && (
-                        <Button
-                          type="primary"
-                          size="small"
-                          icon={<ClipboardList size={14} />}
-                          onClick={() =>
-                            fetchQuestionnaireResponses(
-                              stage.supplier?.sup_id,
-                              stage.supplier?.supplier_name || "Supplier",
-                            )
-                          }
-                          className="!bg-green-600 hover:!bg-green-700 !border-green-600"
-                        >
-                          View Responses
-                        </Button>
-                      )}
-                      {!stage.is_submitted && stage.supplier?.sup_id && id && (
-                        <Button
-                          size="small"
-                          icon={<Send size={14} />}
-                          loading={resendingSupId === stage.supplier.sup_id}
-                          disabled={!stage.supplier?.supplier_email}
-                          onClick={() =>
-                            handleResendSupplierEmail(
-                              stage.supplier.sup_id,
-                              stage.supplier.supplier_name || "this supplier",
-                              stage.supplier?.supplier_email || ""
-                            )
-                          }
-                        >
-                          Resend Email
-                        </Button>
-                      )}
-                      <Tag color={stage.is_submitted ? "success" : "default"}>
-                        {stage.is_submitted ? "Submitted" : "Pending"}
-                      </Tag>
-                    </div>
-                  </div>
-                </div>
-              ),
-            )}
-
-            {(requestData.pcf_data_collection_stage || []).length === 0 && (
-              <div className="text-center py-8">
-                <Database size={48} className="text-gray-400 mx-auto mb-4" />
-                <Text type="secondary">
-                  No data collection requests have been sent yet.
-                </Text>
-              </div>
-            )}
-          </div>
-        </Card>
-      )}
-
-      {/* DQR Status Section - Show when Data Collection is complete (step 4 or beyond) */}
-      {getCurrentStep() >= 4 && (
-        <Card className="!mb-6 shadow-sm rounded-xl border-gray-200">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <Star size={24} className="text-purple-600" />
-              </div>
-              <div>
-                <Title level={4} className="m-0">
-                  Data Quality Rating Status
-                </Title>
-                <Text type="secondary" className="text-sm">
-                  {(() => {
-                    const dqrStages =
-                      requestData.pcf_data_dqr_rating_stage || [];
-                    const completed = dqrStages.filter(
-                      (s: any) => s.is_submitted && s.completed_date,
-                    ).length;
-                    return `${completed}/${dqrStages.length} assessments completed`;
-                  })()}
-                </Text>
-              </div>
-            </div>
-            {isDqrComplete() ? (
-              <Tag color="success" className="text-sm px-3 py-1">
-                <CheckCircle size={14} className="inline mr-1" />
-                All Completed
-              </Tag>
-            ) : (
-              <Tag color="warning" className="text-sm px-3 py-1">
-                <Clock size={14} className="inline mr-1" />
-                In Progress
-              </Tag>
-            )}
-          </div>
-
-          <div className="space-y-4">
-            {(requestData.pcf_data_dqr_rating_stage || []).map(
-              (item: any, index: number) => (
-                <div
-                  key={item.id || index}
-                  className={`p-4 rounded-xl border ${
-                    item.is_submitted && item.completed_date
-                      ? "bg-green-50 border-green-200"
-                      : "bg-yellow-50 border-yellow-200"
-                  }`}
-                >
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-3">
-                        <div
-                          className={`p-2 rounded-full ${
-                            item.is_submitted && item.completed_date
-                              ? "bg-green-100 text-green-600"
-                              : "bg-yellow-100 text-yellow-600"
-                          }`}
-                        >
-                          {item.is_submitted && item.completed_date ? (
-                            <CheckCircle size={20} />
-                          ) : (
-                            <Star size={20} />
-                          )}
-                        </div>
-                        <div>
-                          <Title level={5} className="m-0">
-                            {item.supplier?.supplier_name || "Unknown Supplier"}
-                          </Title>
-                          <Text type="secondary" className="text-xs">
-                            {item.supplier?.code || "N/A"}
-                          </Text>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm ml-11">
-                        <div className="flex items-center gap-2">
-                          <Mail size={14} className="text-gray-400" />
-                          <Text className="text-gray-600">
-                            {item.supplier?.supplier_email || "N/A"}
-                          </Text>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Phone size={14} className="text-gray-400" />
-                          <Text className="text-gray-600">
-                            {item.supplier?.supplier_phone_number || "N/A"}
-                          </Text>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Calendar size={14} className="text-gray-400" />
-                          <Text className="text-gray-600">
-                            {item.completed_date
-                              ? `Completed: ${formatDate(item.completed_date)}`
-                              : `Created: ${formatDate(item.created_date)}`}
-                          </Text>
-                        </div>
-                      </div>
-
-                      {item.submittedBy && (
-                        <div className="mt-3 ml-11">
-                          <div className="flex items-center gap-2 text-sm">
-                            <User size={14} className="text-gray-400" />
-                            <Text className="text-gray-600">
-                              Submitted by:{" "}
-                              {item.submittedBy.user_name || "Unknown"} (
-                              {item.submittedBy.user_role || "N/A"})
-                            </Text>
                           </div>
                         </div>
-                      )}
+                      </div>
                     </div>
+                  ),
+                )}
 
-                    <div className="flex items-center gap-2 ml-4">
-                      <Tag
-                        color={
-                          item.is_submitted && item.completed_date
-                            ? "success"
-                            : "warning"
-                        }
-                      >
-                        {item.is_submitted && item.completed_date
-                          ? "Completed"
-                          : "Pending"}
-                      </Tag>
-                      <Button
-                        type="link"
-                        size="small"
-                        icon={<ExternalLink size={14} />}
-                        onClick={() => {
-                          const sgiq_id = getSgiqIdBySupplier(
-                            item.supplier?.sup_id,
-                          );
-                          if (sgiq_id) {
-                            navigate(
-                              `/data-quality-rating/view?sgiq_id=${sgiq_id}&bom_pcf_id=${id}`,
-                            );
-                          } else {
-                            message.warning(
-                              "DQR data not found for this supplier",
-                            );
-                          }
-                        }}
-                        disabled={!getSgiqIdBySupplier(item.supplier?.sup_id)}
-                      >
-                        {item.is_submitted && item.completed_date
-                          ? "View"
-                          : "Assess"}
-                      </Button>
-                    </div>
+                {(requestData.pcf_data_collection_stage || []).length === 0 && (
+                  <div className="text-center py-8">
+                    <Database size={48} className="text-gray-300 mx-auto mb-4" />
+                    <Text type="secondary">
+                      No data collection requests have been sent yet.
+                    </Text>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Data Quality Rating */}
+          {getCurrentStep() >= 4 && (
+            <div className="bg-white border border-[#E6EAF0] rounded-2xl shadow-sm p-6">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-xl bg-[#F5F0FF] flex items-center justify-center flex-shrink-0">
+                  <Star size={22} className="text-[#7C3AED]" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-base font-extrabold text-gray-900">
+                    Data Quality Rating
+                  </div>
+                  <div className="text-[12.5px] text-gray-400 font-semibold mt-0.5">
+                    {(() => {
+                      const dqrStages =
+                        requestData.pcf_data_dqr_rating_stage || [];
+                      const completed = dqrStages.filter(
+                        (s: any) => s.is_submitted && s.completed_date,
+                      ).length;
+                      return `${completed} / ${dqrStages.length} assessments completed`;
+                    })()}
                   </div>
                 </div>
-              ),
-            )}
-
-            {(requestData.pcf_data_dqr_rating_stage || []).length === 0 && (
-              <div className="text-center py-8">
-                <Star size={48} className="text-gray-400 mx-auto mb-4" />
-                <Text type="secondary">
-                  No DQR assessments available. Complete data collection first.
-                </Text>
+                <span
+                  className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11.5px] font-bold border flex-shrink-0 ${
+                    isDqrComplete()
+                      ? "bg-[#ECFDF3] text-[#15803D] border-[#BBF7D0]"
+                      : "bg-amber-50 text-amber-700 border-amber-200"
+                  }`}
+                >
+                  {isDqrComplete() ? (
+                    <Check size={13} strokeWidth={3} />
+                  ) : (
+                    <Clock size={13} />
+                  )}
+                  {isDqrComplete() ? "All Completed" : "In Progress"}
+                </span>
               </div>
-            )}
-          </div>
-        </Card>
+
+              <div className="mt-4 space-y-3">
+                {(requestData.pcf_data_dqr_rating_stage || []).map(
+                  (item: any, index: number) => {
+                    const done = item.is_submitted && item.completed_date;
+                    return (
+                      <div
+                        key={item.id || index}
+                        className="bg-[#F8FAFB] border border-[#EEF1F5] rounded-xl p-4"
+                      >
+                        <div className="flex items-start gap-3">
+                          <div
+                            className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${
+                              done
+                                ? "bg-[#ECFDF3] text-[#16A34A]"
+                                : "bg-amber-100 text-amber-600"
+                            }`}
+                          >
+                            {done ? (
+                              <Check size={15} strokeWidth={3} />
+                            ) : (
+                              <Star size={14} />
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-3 flex-wrap">
+                              <div>
+                                <div className="text-[14.5px] font-extrabold text-gray-900">
+                                  {item.supplier?.supplier_name ||
+                                    "Unknown Supplier"}
+                                </div>
+                                <div className="font-mono text-xs text-gray-400">
+                                  {item.supplier?.code || "N/A"}
+                                </div>
+                              </div>
+                              <Button
+                                size="small"
+                                icon={<ExternalLink size={14} />}
+                                onClick={() => {
+                                  const sgiq_id = getSgiqIdBySupplier(
+                                    item.supplier?.sup_id,
+                                  );
+                                  if (sgiq_id) {
+                                    navigate(
+                                      `/data-quality-rating/view?sgiq_id=${sgiq_id}&bom_pcf_id=${id}`,
+                                    );
+                                  } else {
+                                    message.warning(
+                                      "DQR data not found for this supplier",
+                                    );
+                                  }
+                                }}
+                                disabled={
+                                  !getSgiqIdBySupplier(item.supplier?.sup_id)
+                                }
+                                className="!rounded-[10px] !font-bold !text-blue-600 !border-[#BFD3FE] hover:!bg-[#EFF5FF]"
+                              >
+                                {done ? "View" : "Assess"}
+                              </Button>
+                            </div>
+                            <div className="flex flex-wrap gap-x-4 gap-y-1.5 mt-3 text-[12.5px] text-gray-500">
+                              <span className="inline-flex items-center gap-1.5 min-w-0">
+                                <Mail
+                                  size={14}
+                                  className="text-gray-400 flex-shrink-0"
+                                />
+                                <span className="truncate">
+                                  {item.supplier?.supplier_email || "N/A"}
+                                </span>
+                              </span>
+                              <span className="inline-flex items-center gap-1.5">
+                                <Phone size={14} className="text-gray-400" />
+                                {item.supplier?.supplier_phone_number || "N/A"}
+                              </span>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-2 text-xs font-semibold">
+                              <span
+                                className={`inline-flex items-center gap-1.5 ${
+                                  done ? "text-[#15803D]" : "text-amber-600"
+                                }`}
+                              >
+                                <Clock size={13} />
+                                {item.completed_date
+                                  ? `Completed ${formatDate(item.completed_date)}`
+                                  : `Created ${formatDate(item.created_date)}`}
+                              </span>
+                              {item.submittedBy && (
+                                <span className="inline-flex items-center gap-1.5 text-gray-400">
+                                  <User size={13} />
+                                  Submitted by{" "}
+                                  {item.submittedBy.user_name || "Unknown"} (
+                                  {item.submittedBy.user_role || "N/A"})
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  },
+                )}
+
+                {(requestData.pcf_data_dqr_rating_stage || []).length === 0 && (
+                  <div className="text-center py-8">
+                    <Star size={48} className="text-gray-300 mx-auto mb-4" />
+                    <Text type="secondary">
+                      No DQR assessments available. Complete data collection
+                      first.
+                    </Text>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
       )}
 
       {/* PCF Calculation Section - Show when in PCF Calculation stage (step 5) */}
       {getCurrentStep() === 5 && (
-        <Card className="!mb-6 shadow-sm rounded-xl border-gray-200">
+        <Card className="!mb-5 !rounded-2xl !border-[#E6EAF0] shadow-sm">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-emerald-100 rounded-lg">
@@ -1462,22 +1592,22 @@ const PCFRequestView: React.FC = () => {
 
       {/* Result Validation Section - Show when PCF is calculated (step 6 or beyond) */}
       {requestData?.pcf_request_stages?.is_pcf_calculated && (
-        <Card className="!mb-6 shadow-sm rounded-xl border-gray-200">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <BarChart3 size={24} className="text-green-600" />
+        <Card className="!mb-5 !rounded-2xl !border-[#E6EAF0] shadow-sm">
+          <div className="flex items-center justify-between gap-4 mb-5 flex-wrap">
+            <div className="flex items-center gap-3.5">
+              <div className="w-12 h-12 rounded-[13px] bg-[#ECFDF3] flex items-center justify-center flex-shrink-0">
+                <BarChart3 size={24} className="text-[#16A34A]" />
               </div>
               <div>
-                <Title level={4} className="m-0">
-                  PCF Results & Validation
-                </Title>
-                <Text type="secondary" className="text-sm">
+                <h2 className="m-0 text-lg font-extrabold text-gray-900">
+                  PCF Results &amp; Validation
+                </h2>
+                <div className="text-[13px] text-gray-400 mt-0.5">
                   Review calculated carbon footprint data for all components
-                </Text>
+                </div>
               </div>
             </div>
-            {!requestData?.pcf_request_stages?.is_result_submitted && (
+            {!requestData?.pcf_request_stages?.is_result_submitted ? (
               <Button
                 type="primary"
                 size="large"
@@ -1494,12 +1624,11 @@ const PCFRequestView: React.FC = () => {
               >
                 {submittingInternally ? "Submitting..." : "Submit PCF Results"}
               </Button>
-            )}
-            {requestData?.pcf_request_stages?.is_result_submitted && (
-              <Tag color="success" className="text-sm px-3 py-1">
-                <CheckCircle size={14} className="inline mr-1" />
+            ) : (
+              <span className="inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-[12.5px] font-bold bg-[#ECFDF3] text-[#15803D] border border-[#BBF7D0]">
+                <Check size={14} strokeWidth={3} />
                 Results Submitted
-              </Tag>
+              </span>
             )}
           </div>
 
@@ -1519,6 +1648,11 @@ const PCFRequestView: React.FC = () => {
                 ),
                 children: (
                   <div className="pt-4">
+                    <div
+                      className={`grid grid-cols-1 gap-5 items-start ${
+                        primarySupplier ? "lg:grid-cols-[1.5fr_1fr]" : ""
+                      }`}
+                    >
                     {/* Overview Tab - BomTable with expandable rows */}
                     <BomTable
                       bomData={(requestData?.bom_list || []).map(
@@ -1552,6 +1686,75 @@ const PCFRequestView: React.FC = () => {
                       showCalculatedEmissions={true}
                     />
 
+                    {/* Supplier Information panel */}
+                    {primarySupplier && (
+                      <div className="bg-white border border-[#E6EAF0] rounded-2xl p-5">
+                        <div className="flex items-center gap-3 mb-4">
+                          <div className="w-10 h-10 rounded-xl bg-[#EFF5FF] flex items-center justify-center flex-shrink-0">
+                            <User size={20} className="text-blue-600" />
+                          </div>
+                          <div className="text-[15px] font-extrabold text-gray-900">
+                            Supplier Information
+                          </div>
+                        </div>
+                        {[
+                          {
+                            label: "Supplier Name",
+                            value: primarySupplier.supplier_name || "N/A",
+                            mono: false,
+                          },
+                          {
+                            label: "Email",
+                            value: primarySupplier.supplier_email || "N/A",
+                            mono: false,
+                          },
+                          {
+                            label: "Phone",
+                            value:
+                              primarySupplier.supplier_phone_number || "N/A",
+                            mono: true,
+                          },
+                        ].map((r) => (
+                          <div
+                            key={r.label}
+                            className="flex items-center justify-between gap-3 py-2.5 border-b border-[#EEF1F5]"
+                          >
+                            <span className="text-[13px] text-gray-400 font-semibold flex-shrink-0">
+                              {r.label}
+                            </span>
+                            <span
+                              className={`text-[13.5px] font-bold text-gray-800 text-right truncate ${
+                                r.mono ? "font-mono" : ""
+                              }`}
+                              title={r.value}
+                            >
+                              {r.value}
+                            </span>
+                          </div>
+                        ))}
+                        <div className="flex items-center justify-between gap-3 py-2.5">
+                          <span className="text-[13px] text-gray-400 font-semibold">
+                            Questionnaire
+                          </span>
+                          <span
+                            className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11.5px] font-bold border ${
+                              primarySupplierSubmitted
+                                ? "bg-[#ECFDF3] text-[#15803D] border-[#BBF7D0]"
+                                : "bg-amber-50 text-amber-700 border-amber-200"
+                            }`}
+                          >
+                            {primarySupplierSubmitted ? (
+                              <Check size={12} strokeWidth={3} />
+                            ) : (
+                              <Clock size={12} />
+                            )}
+                            {primarySupplierSubmitted ? "Completed" : "Pending"}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                    </div>
+
                     {/* Summary Cards */}
                     <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mt-6">
                       {[
@@ -1560,8 +1763,8 @@ const PCFRequestView: React.FC = () => {
                           value: (requestData?.bom_list || []).reduce(
                             (sum: number, item: any) =>
                               sum +
-                              (item.pcf_total_emission_calculation
-                                ?.material_value || 0),
+                              (Number(item.pcf_total_emission_calculation
+                                ?.material_value) || 0),
                             0,
                           ),
                           color: "blue",
@@ -1571,8 +1774,8 @@ const PCFRequestView: React.FC = () => {
                           value: (requestData?.bom_list || []).reduce(
                             (sum: number, item: any) =>
                               sum +
-                              (item.pcf_total_emission_calculation
-                                ?.production_value || 0),
+                              (Number(item.pcf_total_emission_calculation
+                                ?.production_value) || 0),
                             0,
                           ),
                           color: "purple",
@@ -1582,8 +1785,8 @@ const PCFRequestView: React.FC = () => {
                           value: (requestData?.bom_list || []).reduce(
                             (sum: number, item: any) =>
                               sum +
-                              (item.pcf_total_emission_calculation
-                                ?.packaging_value || 0),
+                              (Number(item.pcf_total_emission_calculation
+                                ?.packaging_value) || 0),
                             0,
                           ),
                           color: "orange",
@@ -1593,8 +1796,8 @@ const PCFRequestView: React.FC = () => {
                           value: (requestData?.bom_list || []).reduce(
                             (sum: number, item: any) =>
                               sum +
-                              (item.pcf_total_emission_calculation
-                                ?.waste_value || 0),
+                              (Number(item.pcf_total_emission_calculation
+                                ?.waste_value) || 0),
                             0,
                           ),
                           color: "red",
@@ -1604,8 +1807,8 @@ const PCFRequestView: React.FC = () => {
                           value: (requestData?.bom_list || []).reduce(
                             (sum: number, item: any) =>
                               sum +
-                              (item.pcf_total_emission_calculation
-                                ?.logistic_value || 0),
+                              (Number(item.pcf_total_emission_calculation
+                                ?.logistic_value) || 0),
                             0,
                           ),
                           color: "cyan",
@@ -1615,28 +1818,37 @@ const PCFRequestView: React.FC = () => {
                           value: (requestData?.bom_list || []).reduce(
                             (sum: number, item: any) =>
                               sum +
-                              (item.pcf_total_emission_calculation
-                                ?.total_pcf_value || 0),
+                              (Number(item.pcf_total_emission_calculation
+                                ?.total_pcf_value) || 0),
                             0,
                           ),
                           color: "green",
                         },
-                      ].map((card, idx) => (
-                        <div
-                          key={idx}
-                          className={`p-4 rounded-xl border ${card.color === "green" ? "bg-green-50 border-green-200" : card.color === "blue" ? "bg-blue-50 border-blue-100" : card.color === "purple" ? "bg-purple-50 border-purple-100" : card.color === "orange" ? "bg-orange-50 border-orange-100" : card.color === "red" ? "bg-red-50 border-red-100" : "bg-cyan-50 border-cyan-100"}`}
-                        >
+                      ].map((card, idx) => {
+                        const isGrand = card.color === "green";
+                        return (
                           <div
-                            className={`text-2xl font-bold ${card.color === "green" ? "text-green-700" : card.color === "blue" ? "text-blue-700" : card.color === "purple" ? "text-purple-700" : card.color === "orange" ? "text-orange-700" : card.color === "red" ? "text-red-700" : "text-cyan-700"}`}
+                            key={idx}
+                            className={`p-4 rounded-2xl border ${isGrand ? "bg-[#16A34A] border-[#16A34A]" : card.color === "blue" ? "bg-blue-50 border-blue-100" : card.color === "purple" ? "bg-purple-50 border-purple-100" : card.color === "orange" ? "bg-orange-50 border-orange-100" : card.color === "red" ? "bg-red-50 border-red-100" : "bg-cyan-50 border-cyan-100"}`}
                           >
-                            {card.value.toFixed(4)}
+                            <div
+                              className={`text-2xl font-extrabold ${isGrand ? "text-white" : card.color === "blue" ? "text-blue-700" : card.color === "purple" ? "text-purple-700" : card.color === "orange" ? "text-orange-700" : card.color === "red" ? "text-red-700" : "text-cyan-700"}`}
+                            >
+                              {card.value.toFixed(4)}
+                            </div>
+                            <div
+                              className={`text-xs mt-1 ${isGrand ? "text-white/90 font-semibold" : "text-gray-500"}`}
+                            >
+                              {card.label}
+                            </div>
+                            <div
+                              className={`text-xs ${isGrand ? "text-white/70" : "text-gray-400"}`}
+                            >
+                              kg CO₂e
+                            </div>
                           </div>
-                          <div className="text-xs text-gray-500 mt-1">
-                            {card.label}
-                          </div>
-                          <div className="text-xs text-gray-400">kg CO₂e</div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 ),
@@ -2397,7 +2609,7 @@ const PCFRequestView: React.FC = () => {
       )}
 
       {/* Completed Stages List */}
-      {/* <Card className="!mb-6 shadow-sm rounded-xl border-gray-200">
+      {/* <Card className="!mb-5 !rounded-2xl !border-[#E6EAF0] shadow-sm">
         <Title level={4} className="mb-6">
           Completed Stages
         </Title>
@@ -2489,7 +2701,7 @@ const PCFRequestView: React.FC = () => {
         if (shouldShowBOM) {
           if (transformedBomData.length > 0) {
             return (
-              <Card className="!mb-6 shadow-sm rounded-xl border-gray-200">
+              <Card className="!mb-5 !rounded-2xl !border-[#E6EAF0] shadow-sm">
                 <div className="flex items-center gap-3 mb-6">
                   <div className="p-2 bg-green-100 rounded-lg">
                     <Layers size={24} className="text-green-600" />
@@ -2504,7 +2716,7 @@ const PCFRequestView: React.FC = () => {
           } else {
             // Show empty state if no BOM data
             return (
-              <Card className="!mb-6 shadow-sm rounded-xl border-gray-200">
+              <Card className="!mb-5 !rounded-2xl !border-[#E6EAF0] shadow-sm">
                 <div className="flex items-center gap-3 mb-6">
                   <div className="p-2 bg-green-100 rounded-lg">
                     <Layers size={24} className="text-green-600" />
@@ -2578,41 +2790,55 @@ const PCFRequestView: React.FC = () => {
       )}
 
       {/* Comments Section */}
-      <Card className="!mb-6 shadow-sm rounded-xl border-gray-200">
-        <Title level={4} className="mb-6">
-          Comments
-        </Title>
-        <List
-          className="mb-6"
-          itemLayout="horizontal"
-          dataSource={comments}
-          renderItem={(item) => (
-            <List.Item>
-              <List.Item.Meta
-                avatar={
-                  <Avatar
-                    src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${item.user_id}`}
-                  />
-                }
-                title={
-                  <div className="flex justify-between">
-                    <span className="font-bold text-gray-800">
+      <div className="mb-5 bg-white border border-[#E6EAF0] rounded-2xl shadow-sm p-6">
+        <div className="flex items-center gap-2.5 mb-5">
+          <MessageSquare size={20} className="text-gray-700" />
+          <h2 className="m-0 text-[17px] font-extrabold text-gray-900">
+            Comments
+          </h2>
+        </div>
+
+        {comments.length > 0 ? (
+          <div className="space-y-4 mb-6">
+            {comments.map((item: any, idx: number) => (
+              <div key={item.id || idx} className="flex gap-3">
+                <div className="w-9 h-9 rounded-xl bg-[#16A34A] text-white flex items-center justify-center font-bold text-sm flex-shrink-0">
+                  {String(item.user_name || "U")
+                    .charAt(0)
+                    .toUpperCase()}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="font-bold text-gray-800 text-sm">
                       {item.user_name || "User"}
                     </span>
                     <span className="text-xs text-gray-400">
                       {formatDate(item.commented_at)}
                     </span>
                   </div>
-                }
-                description={item.comment}
-              />
-            </List.Item>
-          )}
-        />
-        <div className="flex gap-4">
-          <Avatar
-            src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${authService.getCurrentUser()?.id}`}
-          />
+                  <div className="text-sm text-gray-600 mt-1 whitespace-pre-wrap break-words">
+                    {item.comment}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center mb-3">
+              <Mail size={22} className="text-gray-300" />
+            </div>
+            <div className="text-sm text-gray-400 font-medium">
+              No comments yet
+            </div>
+          </div>
+        )}
+
+        {/* Add comment */}
+        <div className="flex gap-3 items-start pt-4 border-t border-[#EEF1F5]">
+          <div className="w-9 h-9 rounded-xl bg-[#16A34A] text-white flex items-center justify-center font-bold text-sm flex-shrink-0">
+            {currentUserInitial}
+          </div>
           <div className="flex-1">
             <TextArea
               rows={3}
@@ -2624,17 +2850,17 @@ const PCFRequestView: React.FC = () => {
             <div className="flex justify-end">
               <Button
                 type="primary"
-                icon={<MessageSquare size={16} />}
+                icon={<Send size={16} />}
                 onClick={handleAddComment}
                 loading={commentLoading}
-                className="bg-blue-600"
+                className="!bg-[#16A34A] hover:!bg-[#15803D] !border-[#16A34A] !rounded-[10px] !font-bold"
               >
                 Comment
               </Button>
             </div>
           </div>
         </div>
-      </Card>
+      </div>
 
       {/* Resend Supplier Email Modal */}
       <Modal
@@ -3747,6 +3973,7 @@ const PCFRequestView: React.FC = () => {
           </div>
         )}
       </Modal>
+      </div>
     </div>
   );
 };
