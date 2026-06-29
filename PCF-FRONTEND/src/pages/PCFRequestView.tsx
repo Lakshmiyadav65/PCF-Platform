@@ -1790,103 +1790,88 @@ const PCFRequestView: React.FC = () => {
                 ),
                 children: (
                   <div className="pt-4">
-                    {/* Emissions Breakdown Table */}
-                    <div className="overflow-x-auto">
-                      <table className="min-w-full">
-                        <thead>
-                          <tr className="bg-gradient-to-r from-green-600 to-emerald-600">
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider">
-                              Component Name
-                            </th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider">
-                              Material Number
-                            </th>
-                            <th className="px-4 py-3 text-right text-xs font-semibold text-white uppercase tracking-wider">
-                              Material (kg CO₂e)
-                            </th>
-                            <th className="px-4 py-3 text-right text-xs font-semibold text-white uppercase tracking-wider">
-                              Production (kg CO₂e)
-                            </th>
-                            <th className="px-4 py-3 text-right text-xs font-semibold text-white uppercase tracking-wider">
-                              Packaging (kg CO₂e)
-                            </th>
-                            <th className="px-4 py-3 text-right text-xs font-semibold text-white uppercase tracking-wider">
-                              Waste (kg CO₂e)
-                            </th>
-                            <th className="px-4 py-3 text-right text-xs font-semibold text-white uppercase tracking-wider">
-                              Logistics (kg CO₂e)
-                            </th>
-                            <th className="px-4 py-3 text-right text-xs font-semibold text-white uppercase tracking-wider">
-                              Total PCF (kg CO₂e)
-                            </th>
-                            <th className="px-4 py-3 text-right text-xs font-semibold text-white uppercase tracking-wider">
-                              % of Total
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-100">
-                          {(() => {
-                            const bomList = requestData?.bom_list || [];
-                            const grandTotal = bomList.reduce(
-                              (sum: number, item: any) =>
-                                sum +
-                                (item.pcf_total_emission_calculation
-                                  ?.total_pcf_value || 0),
-                              0,
-                            );
-                            return bomList.map((item: any, index: number) => {
-                              const emissions =
-                                item.pcf_total_emission_calculation || {};
-                              const percentage =
-                                grandTotal > 0
-                                  ? ((emissions.total_pcf_value || 0) /
-                                      grandTotal) *
-                                    100
-                                  : 0;
-                              return (
-                                <tr
-                                  key={item.id || index}
-                                  className="hover:bg-gray-50"
-                                >
-                                  <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                    {/* Emissions Breakdown — per-stage progress bars */}
+                    <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                      <Leaf size={18} className="text-green-600" />
+                      Emissions Breakdown
+                    </h4>
+                    <div className="space-y-4">
+                      {(requestData?.bom_list || []).map(
+                        (item: any, index: number) => {
+                          const e =
+                            item.pcf_total_emission_calculation || {};
+                          const total = e.total_pcf_value || 0;
+                          const stages = [
+                            { label: "Materials", value: e.material_value || 0 },
+                            {
+                              label: "Production",
+                              value: e.production_value || 0,
+                            },
+                            {
+                              label: "Packaging",
+                              value: e.packaging_value || 0,
+                            },
+                            { label: "Waste", value: e.waste_value || 0 },
+                            {
+                              label: "Logistics",
+                              value: e.logistic_value || 0,
+                            },
+                          ];
+                          return (
+                            <div
+                              key={item.id || index}
+                              className="bg-white rounded-[14px] p-5 border border-[#EEF1F5]"
+                            >
+                              <div className="flex items-center justify-between mb-3">
+                                <div>
+                                  <h5 className="font-medium text-gray-900">
                                     {item.component_name || "-"}
-                                  </td>
-                                  <td className="px-4 py-3 text-sm text-gray-600 font-mono">
+                                  </h5>
+                                  <p className="text-xs text-gray-500 font-mono">
                                     {item.material_number || "-"}
-                                  </td>
-                                  <td className="px-4 py-3 text-sm text-gray-900 text-right">
-                                    {(emissions.material_value || 0).toFixed(4)}
-                                  </td>
-                                  <td className="px-4 py-3 text-sm text-gray-900 text-right">
-                                    {(emissions.production_value || 0).toFixed(
-                                      4,
-                                    )}
-                                  </td>
-                                  <td className="px-4 py-3 text-sm text-gray-900 text-right">
-                                    {(emissions.packaging_value || 0).toFixed(
-                                      4,
-                                    )}
-                                  </td>
-                                  <td className="px-4 py-3 text-sm text-gray-900 text-right">
-                                    {(emissions.waste_value || 0).toFixed(4)}
-                                  </td>
-                                  <td className="px-4 py-3 text-sm text-gray-900 text-right">
-                                    {(emissions.logistic_value || 0).toFixed(4)}
-                                  </td>
-                                  <td className="px-4 py-3 text-sm font-semibold text-green-700 text-right">
-                                    {(emissions.total_pcf_value || 0).toFixed(
-                                      4,
-                                    )}
-                                  </td>
-                                  <td className="px-4 py-3 text-sm font-medium text-green-600 text-right">
-                                    {percentage.toFixed(1)}%
-                                  </td>
-                                </tr>
-                              );
-                            });
-                          })()}
-                        </tbody>
-                      </table>
+                                  </p>
+                                </div>
+                                <Tag color="green">
+                                  {total.toFixed(4)} kg CO₂e
+                                </Tag>
+                              </div>
+                              <div className="flex flex-col gap-4">
+                                {stages.map((s) => {
+                                  const pct =
+                                    total > 0 ? (s.value / total) * 100 : 0;
+                                  return (
+                                    <div key={s.label}>
+                                      <div className="flex items-baseline justify-between gap-3 mb-1.5">
+                                        <div className="text-[13.5px] font-bold text-gray-800">
+                                          {s.label}
+                                        </div>
+                                        <span className="text-sm font-extrabold text-[#15803D]">
+                                          {s.value.toFixed(4)}
+                                        </span>
+                                      </div>
+                                      <div className="flex items-center gap-2.5">
+                                        <div className="flex-1 h-[9px] bg-[#F1F5F9] rounded-[5px] overflow-hidden">
+                                          <div
+                                            className="h-full rounded-[5px]"
+                                            style={{
+                                              width: `${Math.min(pct, 100)}%`,
+                                              background:
+                                                "linear-gradient(90deg,#22C55E,#15803D)",
+                                            }}
+                                          />
+                                        </div>
+                                        <span className="text-xs font-bold text-gray-500 w-[52px] text-right">
+                                          {pct.toFixed(1)}%
+                                        </span>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          );
+                        },
+                      )}
                     </div>
 
                     {/* Material Breakdown for each component */}
