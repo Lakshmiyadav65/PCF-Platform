@@ -1648,11 +1648,6 @@ const PCFRequestView: React.FC = () => {
                 ),
                 children: (
                   <div className="pt-4">
-                    <div
-                      className={`grid grid-cols-1 gap-5 items-start ${
-                        primarySupplier ? "lg:grid-cols-[1.5fr_1fr]" : ""
-                      }`}
-                    >
                     {/* Overview Tab - BomTable with expandable rows */}
                     <BomTable
                       bomData={(requestData?.bom_list || []).map(
@@ -1684,76 +1679,8 @@ const PCFRequestView: React.FC = () => {
                       )}
                       readOnly={true}
                       showCalculatedEmissions={true}
+                      variant="detail"
                     />
-
-                    {/* Supplier Information panel */}
-                    {primarySupplier && (
-                      <div className="bg-white border border-[#E6EAF0] rounded-2xl p-5">
-                        <div className="flex items-center gap-3 mb-4">
-                          <div className="w-10 h-10 rounded-xl bg-[#EFF5FF] flex items-center justify-center flex-shrink-0">
-                            <User size={20} className="text-blue-600" />
-                          </div>
-                          <div className="text-[15px] font-extrabold text-gray-900">
-                            Supplier Information
-                          </div>
-                        </div>
-                        {[
-                          {
-                            label: "Supplier Name",
-                            value: primarySupplier.supplier_name || "N/A",
-                            mono: false,
-                          },
-                          {
-                            label: "Email",
-                            value: primarySupplier.supplier_email || "N/A",
-                            mono: false,
-                          },
-                          {
-                            label: "Phone",
-                            value:
-                              primarySupplier.supplier_phone_number || "N/A",
-                            mono: true,
-                          },
-                        ].map((r) => (
-                          <div
-                            key={r.label}
-                            className="flex items-center justify-between gap-3 py-2.5 border-b border-[#EEF1F5]"
-                          >
-                            <span className="text-[13px] text-gray-400 font-semibold flex-shrink-0">
-                              {r.label}
-                            </span>
-                            <span
-                              className={`text-[13.5px] font-bold text-gray-800 text-right truncate ${
-                                r.mono ? "font-mono" : ""
-                              }`}
-                              title={r.value}
-                            >
-                              {r.value}
-                            </span>
-                          </div>
-                        ))}
-                        <div className="flex items-center justify-between gap-3 py-2.5">
-                          <span className="text-[13px] text-gray-400 font-semibold">
-                            Questionnaire
-                          </span>
-                          <span
-                            className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11.5px] font-bold border ${
-                              primarySupplierSubmitted
-                                ? "bg-[#ECFDF3] text-[#15803D] border-[#BBF7D0]"
-                                : "bg-amber-50 text-amber-700 border-amber-200"
-                            }`}
-                          >
-                            {primarySupplierSubmitted ? (
-                              <Check size={12} strokeWidth={3} />
-                            ) : (
-                              <Clock size={12} />
-                            )}
-                            {primarySupplierSubmitted ? "Completed" : "Pending"}
-                          </span>
-                        </div>
-                      </div>
-                    )}
-                    </div>
 
                     {/* Summary Cards */}
                     <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mt-6">
