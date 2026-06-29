@@ -649,7 +649,7 @@ const PCFRequestView: React.FC = () => {
       )}
 
       {/* Header Card — D2 green header band */}
-      <div className="mb-5 bg-white border border-[#E6EAF0] rounded-2xl shadow-sm overflow-hidden">
+      <div className="mb-5 bg-white border border-[#E6EAF0] rounded-[18px] shadow-sm overflow-hidden">
         {/* Gradient hero band */}
         <div
           className="relative overflow-hidden px-7 py-6 text-white"
@@ -660,14 +660,14 @@ const PCFRequestView: React.FC = () => {
         >
           {/* decorative circle */}
           <div
-            className="absolute -right-12 -top-12 w-56 h-56 rounded-full pointer-events-none"
+            className="absolute -right-[50px] -top-[50px] w-[230px] h-[230px] rounded-full pointer-events-none"
             style={{ background: "rgba(255,255,255,.07)" }}
           />
 
           {/* Title row */}
           <div className="relative flex items-center gap-4">
             <div
-              className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
+              className="w-[46px] h-[46px] rounded-[13px] flex items-center justify-center flex-shrink-0"
               style={{ background: "rgba(255,255,255,.18)" }}
             >
               <Box size={24} className="text-white" />
@@ -685,7 +685,7 @@ const PCFRequestView: React.FC = () => {
               </div>
             </div>
             <span
-              className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-bold flex-shrink-0"
+              className="inline-flex items-center gap-[7px] rounded-full px-[15px] py-[7px] text-[13px] font-bold flex-shrink-0"
               style={{
                 background: "rgba(255,255,255,.2)",
                 border: "1px solid rgba(255,255,255,.35)",
@@ -700,7 +700,7 @@ const PCFRequestView: React.FC = () => {
           </div>
 
           {/* Metrics row */}
-          <div className="relative flex items-end gap-7 mt-6 flex-wrap">
+          <div className="relative flex items-end gap-[26px] mt-[22px] flex-wrap">
             <div>
               <div
                 className="text-[11.5px] font-bold uppercase tracking-wide"
@@ -717,7 +717,7 @@ const PCFRequestView: React.FC = () => {
                 </span>
               </div>
             </div>
-            <div className="flex gap-3 ml-auto flex-wrap">
+            <div className="flex gap-[11px] ml-auto flex-wrap">
               {[
                 {
                   label: "Weight",
@@ -746,7 +746,7 @@ const PCFRequestView: React.FC = () => {
               ].map((chip) => (
                 <div
                   key={chip.label}
-                  className="rounded-xl px-4 py-2.5"
+                  className="rounded-xl px-4 py-[11px]"
                   style={{ background: "rgba(255,255,255,.14)" }}
                 >
                   <div
@@ -768,7 +768,7 @@ const PCFRequestView: React.FC = () => {
         </div>
 
         {/* Detail grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-x-7 gap-y-5 px-6 py-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-x-7 gap-y-[22px] px-[26px] py-[22px]">
           {[
             { label: "Reference Number", value: requestData.code, accent: false },
             {
@@ -824,7 +824,7 @@ const PCFRequestView: React.FC = () => {
       </div>
 
       {/* Stage Stepper — custom horizontal tracker */}
-      <div className="mb-5 bg-white border border-[#E6EAF0] rounded-2xl shadow-sm p-6">
+      <div className="mb-5 bg-white border border-[#E6EAF0] rounded-[18px] shadow-sm p-6">
         <div className="flex items-center gap-2.5 mb-7 flex-wrap">
           <h2 className="m-0 text-[17px] font-extrabold text-gray-900">
             PCF Request Stages
@@ -895,14 +895,14 @@ const PCFRequestView: React.FC = () => {
 
         {/* Completion banner */}
         <div
-          className={`mt-6 flex items-center gap-4 rounded-2xl px-5 py-4 ${
+          className={`mt-6 flex items-center gap-4 rounded-[14px] px-5 py-[18px] ${
             isAllComplete
               ? "bg-[#ECFDF3] border border-[#BBF7D0]"
               : "bg-amber-50 border border-amber-200"
           }`}
         >
           <div
-            className={`w-[42px] h-[42px] rounded-xl flex items-center justify-center flex-shrink-0 ${
+            className={`w-[42px] h-[42px] rounded-[11px] flex items-center justify-center flex-shrink-0 ${
               isAllComplete ? "bg-[#16A34A]" : "bg-amber-400"
             }`}
           >
@@ -948,7 +948,7 @@ const PCFRequestView: React.FC = () => {
 
       {/* Supplier Information summary card */}
       {primarySupplier && (
-        <div className="mb-5 bg-white border border-[#E6EAF0] rounded-2xl shadow-sm p-6">
+        <div className="mb-5 bg-white border border-[#E6EAF0] rounded-[18px] shadow-sm p-6">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-11 h-11 rounded-xl bg-[#EFF5FF] flex items-center justify-center flex-shrink-0">
               <User size={22} className="text-blue-600" />
@@ -1010,7 +1010,7 @@ const PCFRequestView: React.FC = () => {
 
       {/* Task Management Section - Show only in Data Collection stage (step 3) */}
       {getCurrentStep() === 3 && (
-        <Card className="!mb-5 !rounded-2xl !border-[#E6EAF0] shadow-sm">
+        <Card className="!mb-5 !rounded-[18px] !border-[#E6EAF0] shadow-sm">
           <div className="flex items-center gap-3 mb-6">
             <div className="p-2 bg-green-100 rounded-lg">
               <CheckSquare size={24} className="text-green-600" />
@@ -1180,7 +1180,7 @@ const PCFRequestView: React.FC = () => {
       {(requestData?.pcf_request_stages?.is_bom_verified ||
         getCurrentStep() >= 4) && (
         <div
-          className={`mb-5 grid gap-5 items-start ${
+          className={`mb-5 grid gap-5 items-stretch ${
             requestData?.pcf_request_stages?.is_bom_verified &&
             getCurrentStep() >= 4
               ? "lg:grid-cols-2"
@@ -1189,7 +1189,7 @@ const PCFRequestView: React.FC = () => {
         >
           {/* Data Collection */}
           {requestData?.pcf_request_stages?.is_bom_verified && (
-            <div className="bg-white border border-[#E6EAF0] rounded-2xl shadow-sm p-6">
+            <div className="bg-white border border-[#E6EAF0] rounded-[18px] shadow-sm p-6">
               <div className="flex items-center gap-3">
                 <div className="w-11 h-11 rounded-xl bg-[#EFF5FF] flex items-center justify-center flex-shrink-0">
                   <Database size={22} className="text-blue-600" />
@@ -1230,7 +1230,7 @@ const PCFRequestView: React.FC = () => {
                   (stage: any, index: number) => (
                     <div
                       key={stage.id || index}
-                      className="bg-[#F8FAFB] border border-[#EEF1F5] rounded-xl p-4"
+                      className="bg-[#F8FAFB] border border-[#EEF1F5] rounded-[13px] p-4"
                     >
                       <div className="flex items-start gap-3">
                         <div
@@ -1344,7 +1344,7 @@ const PCFRequestView: React.FC = () => {
 
           {/* Data Quality Rating */}
           {getCurrentStep() >= 4 && (
-            <div className="bg-white border border-[#E6EAF0] rounded-2xl shadow-sm p-6">
+            <div className="bg-white border border-[#E6EAF0] rounded-[18px] shadow-sm p-6">
               <div className="flex items-center gap-3">
                 <div className="w-11 h-11 rounded-xl bg-[#F5F0FF] flex items-center justify-center flex-shrink-0">
                   <Star size={22} className="text-[#7C3AED]" />
@@ -1387,7 +1387,7 @@ const PCFRequestView: React.FC = () => {
                     return (
                       <div
                         key={item.id || index}
-                        className="bg-[#F8FAFB] border border-[#EEF1F5] rounded-xl p-4"
+                        className="bg-[#F8FAFB] border border-[#EEF1F5] rounded-[13px] p-4"
                       >
                         <div className="flex items-start gap-3">
                           <div
@@ -1434,7 +1434,7 @@ const PCFRequestView: React.FC = () => {
                                 disabled={
                                   !getSgiqIdBySupplier(item.supplier?.sup_id)
                                 }
-                                className="!rounded-[10px] !font-bold !text-blue-600 !border-[#BFD3FE] hover:!bg-[#EFF5FF]"
+                                className="!rounded-[10px] !font-bold !bg-white !text-[#2563EB] !border-[#BFD3FE] hover:!bg-[#EFF5FF]"
                               >
                                 {done ? "View" : "Assess"}
                               </Button>
@@ -1498,7 +1498,7 @@ const PCFRequestView: React.FC = () => {
 
       {/* PCF Calculation Section - Show when in PCF Calculation stage (step 5) */}
       {getCurrentStep() === 5 && (
-        <Card className="!mb-5 !rounded-2xl !border-[#E6EAF0] shadow-sm">
+        <Card className="!mb-5 !rounded-[18px] !border-[#E6EAF0] shadow-sm">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-emerald-100 rounded-lg">
@@ -1592,7 +1592,7 @@ const PCFRequestView: React.FC = () => {
 
       {/* Result Validation Section - Show when PCF is calculated (step 6 or beyond) */}
       {requestData?.pcf_request_stages?.is_pcf_calculated && (
-        <Card className="!mb-5 !rounded-2xl !border-[#E6EAF0] shadow-sm">
+        <Card className="!mb-5 !rounded-[18px] !border-[#E6EAF0] shadow-sm">
           <div className="flex items-center justify-between gap-4 mb-5 flex-wrap">
             <div className="flex items-center gap-3.5">
               <div className="w-12 h-12 rounded-[13px] bg-[#ECFDF3] flex items-center justify-center flex-shrink-0">
@@ -1829,20 +1829,20 @@ const PCFRequestView: React.FC = () => {
                         return (
                           <div
                             key={idx}
-                            className={`p-4 rounded-2xl border ${isGrand ? "bg-[#16A34A] border-[#16A34A]" : card.color === "blue" ? "bg-blue-50 border-blue-100" : card.color === "purple" ? "bg-purple-50 border-purple-100" : card.color === "orange" ? "bg-orange-50 border-orange-100" : card.color === "red" ? "bg-red-50 border-red-100" : "bg-cyan-50 border-cyan-100"}`}
+            className={`p-4 rounded-[13px] ${isGrand ? "bg-[linear-gradient(135deg,#15803D,#0E6E33)]" : card.color === "blue" ? "bg-[#EFF5FF]" : card.color === "purple" ? "bg-[#F5F0FF]" : card.color === "orange" ? "bg-[#FFF4EC]" : card.color === "red" ? "bg-[#FEF1F1]" : "bg-[#ECFAFF]"}`}
                           >
                             <div
-                              className={`text-2xl font-extrabold ${isGrand ? "text-white" : card.color === "blue" ? "text-blue-700" : card.color === "purple" ? "text-purple-700" : card.color === "orange" ? "text-orange-700" : card.color === "red" ? "text-red-700" : "text-cyan-700"}`}
+                              className={`text-xl font-extrabold tracking-tight ${isGrand ? "text-white" : card.color === "blue" ? "text-[#2563EB]" : card.color === "purple" ? "text-[#7C3AED]" : card.color === "orange" ? "text-[#EA580C]" : card.color === "red" ? "text-[#DC2626]" : "text-[#0891B2]"}`}
                             >
                               {card.value.toFixed(4)}
                             </div>
                             <div
-                              className={`text-xs mt-1 ${isGrand ? "text-white/90 font-semibold" : "text-gray-500"}`}
+                              className={`text-xs mt-1.5 font-bold ${isGrand ? "text-[#D1FADF]" : "text-[#334155]"}`}
                             >
                               {card.label}
                             </div>
                             <div
-                              className={`text-xs ${isGrand ? "text-white/70" : "text-gray-400"}`}
+                              className={`text-[10.5px] ${isGrand ? "text-[#A7F3C8]" : "text-gray-400"}`}
                             >
                               kg CO₂e
                             </div>
@@ -1973,7 +1973,7 @@ const PCFRequestView: React.FC = () => {
                           (item: any, idx: number) => (
                             <div
                               key={item.id || idx}
-                              className="bg-gray-50 rounded-xl p-4 border border-gray-200"
+                              className="bg-white rounded-[14px] p-5 border border-[#EEF1F5]"
                             >
                               <div className="flex items-center justify-between mb-3">
                                 <div>
@@ -1994,29 +1994,37 @@ const PCFRequestView: React.FC = () => {
                               </div>
                               {item.material_emission &&
                               item.material_emission.length > 0 ? (
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                <div className="flex flex-col gap-4">
                                   {item.material_emission.map(
                                     (mat: any, mIdx: number) => (
-                                      <div
-                                        key={mat.id || mIdx}
-                                        className="bg-white rounded-lg p-3 border border-gray-100"
-                                      >
-                                        <div className="text-sm font-medium text-gray-900">
-                                          {mat.material_type}
+                                      <div key={mat.id || mIdx}>
+                                        <div className="flex items-baseline justify-between gap-3 mb-1.5">
+                                          <div className="text-[13.5px] font-bold text-gray-800">
+                                            {mat.material_type}
+                                          </div>
+                                          <div className="flex items-baseline gap-2.5 flex-shrink-0">
+                                            <span className="text-[13px] text-gray-400">
+                                              EF {mat.material_emission_factor}
+                                            </span>
+                                            <span className="text-sm font-extrabold text-[#15803D]">
+                                              {(mat.material_emission || 0).toFixed(4)}
+                                            </span>
+                                          </div>
                                         </div>
-                                        <div className="text-xs text-gray-500 mt-1">
-                                          {mat.material_composition}%
-                                          composition
-                                        </div>
-                                        <div className="text-sm font-semibold text-green-600 mt-1">
-                                          {(mat.material_emission || 0).toFixed(
-                                            4,
-                                          )}{" "}
-                                          kg CO₂e
-                                        </div>
-                                        <div className="text-xs text-gray-400">
-                                          EF: {mat.material_emission_factor} kg
-                                          CO₂e/kg
+                                        <div className="flex items-center gap-2.5">
+                                          <div className="flex-1 h-[9px] bg-[#F1F5F9] rounded-[5px] overflow-hidden">
+                                            <div
+                                              className="h-full rounded-[5px]"
+                                              style={{
+                                                width: `${Math.min(Number(mat.material_composition) || 0, 100)}%`,
+                                                background:
+                                                  "linear-gradient(90deg,#22C55E,#15803D)",
+                                              }}
+                                            />
+                                          </div>
+                                          <span className="text-xs font-bold text-gray-500 w-[46px] text-right">
+                                            {mat.material_composition}%
+                                          </span>
                                         </div>
                                       </div>
                                     ),
@@ -2154,7 +2162,10 @@ const PCFRequestView: React.FC = () => {
                                                       leg.motuft_id || legIdx
                                                     }
                                                   >
-                                                    <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm min-w-[160px]">
+                                                    <div className="bg-white rounded-[13px] p-4 border border-[#E6EAF0] shadow-sm min-w-[180px]">
+                                                      <div className="text-[11px] font-bold uppercase tracking-wide text-gray-400 mb-1.5">
+                                                        Leg {legIdx + 1}
+                                                      </div>
                                                       <div className="flex items-center gap-2 mb-2">
                                                         {leg.mode_of_transport
                                                           ?.toLowerCase()
@@ -2203,7 +2214,7 @@ const PCFRequestView: React.FC = () => {
                                                         {leg.source_point} →{" "}
                                                         {leg.drop_point}
                                                       </div>
-                                                      <div className="text-sm font-medium text-gray-700">
+                                                      <div className="text-xl font-extrabold text-gray-900">
                                                         {leg.distance}
                                                       </div>
                                                       <div className="text-xs text-gray-400">
@@ -2609,7 +2620,7 @@ const PCFRequestView: React.FC = () => {
       )}
 
       {/* Completed Stages List */}
-      {/* <Card className="!mb-5 !rounded-2xl !border-[#E6EAF0] shadow-sm">
+      {/* <Card className="!mb-5 !rounded-[18px] !border-[#E6EAF0] shadow-sm">
         <Title level={4} className="mb-6">
           Completed Stages
         </Title>
@@ -2701,7 +2712,7 @@ const PCFRequestView: React.FC = () => {
         if (shouldShowBOM) {
           if (transformedBomData.length > 0) {
             return (
-              <Card className="!mb-5 !rounded-2xl !border-[#E6EAF0] shadow-sm">
+              <Card className="!mb-5 !rounded-[18px] !border-[#E6EAF0] shadow-sm">
                 <div className="flex items-center gap-3 mb-6">
                   <div className="p-2 bg-green-100 rounded-lg">
                     <Layers size={24} className="text-green-600" />
@@ -2716,7 +2727,7 @@ const PCFRequestView: React.FC = () => {
           } else {
             // Show empty state if no BOM data
             return (
-              <Card className="!mb-5 !rounded-2xl !border-[#E6EAF0] shadow-sm">
+              <Card className="!mb-5 !rounded-[18px] !border-[#E6EAF0] shadow-sm">
                 <div className="flex items-center gap-3 mb-6">
                   <div className="p-2 bg-green-100 rounded-lg">
                     <Layers size={24} className="text-green-600" />
@@ -2790,9 +2801,9 @@ const PCFRequestView: React.FC = () => {
       )}
 
       {/* Comments Section */}
-      <div className="mb-5 bg-white border border-[#E6EAF0] rounded-2xl shadow-sm p-6">
+      <div className="mb-5 bg-white border border-[#E6EAF0] rounded-[18px] shadow-sm p-6">
         <div className="flex items-center gap-2.5 mb-5">
-          <MessageSquare size={20} className="text-gray-700" />
+          <MessageSquare size={20} className="text-[#16A34A]" />
           <h2 className="m-0 text-[17px] font-extrabold text-gray-900">
             Comments
           </h2>
@@ -2825,9 +2836,7 @@ const PCFRequestView: React.FC = () => {
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center py-12 text-center">
-            <div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center mb-3">
-              <Mail size={22} className="text-gray-300" />
-            </div>
+            <Mail size={44} strokeWidth={1.7} className="text-gray-300 mb-2.5" />
             <div className="text-sm text-gray-400 font-medium">
               No comments yet
             </div>
@@ -2835,30 +2844,28 @@ const PCFRequestView: React.FC = () => {
         )}
 
         {/* Add comment */}
-        <div className="flex gap-3 items-start pt-4 border-t border-[#EEF1F5]">
+        <div className="flex gap-3 items-end pt-4 border-t border-[#EEF1F5]">
           <div className="w-9 h-9 rounded-xl bg-[#16A34A] text-white flex items-center justify-center font-bold text-sm flex-shrink-0">
             {currentUserInitial}
           </div>
           <div className="flex-1">
             <TextArea
-              rows={3}
+              rows={2}
               placeholder="Add a comment..."
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
-              className="mb-3 rounded-xl"
+              className="rounded-xl"
             />
-            <div className="flex justify-end">
-              <Button
-                type="primary"
-                icon={<Send size={16} />}
-                onClick={handleAddComment}
-                loading={commentLoading}
-                className="!bg-[#16A34A] hover:!bg-[#15803D] !border-[#16A34A] !rounded-[10px] !font-bold"
-              >
-                Comment
-              </Button>
-            </div>
           </div>
+          <Button
+            type="primary"
+            icon={<Send size={16} />}
+            onClick={handleAddComment}
+            loading={commentLoading}
+            className="!bg-[#16A34A] hover:!bg-[#15803D] !border-[#16A34A] !rounded-[11px] !font-bold !h-auto !py-2.5"
+          >
+            Comment
+          </Button>
         </div>
       </div>
 
