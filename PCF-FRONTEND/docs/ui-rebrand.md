@@ -71,6 +71,6 @@ unchanged**. In detail mode:
 
 ### Emissions tab
 
-The "Emissions Breakdown" table was replaced with per-component **progress-bar
-cards** (one bar per stage: Materials / Production / Packaging / Waste /
-Logistics), matching the "Material Composition Breakdown" design.
+Shows the per-component emissions **table** (Component / Material No. / per-stage
+values / Total PCF / % Total) followed by the **Material Composition Breakdown**
+(per-material progress bars), matching the D2 design.

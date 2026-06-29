@@ -50,9 +50,6 @@ import {
   Loader2,
   Leaf,
   Truck,
-  Ship,
-  Train,
-  Plane,
   PieChart,
   Scale,
   Factory,
@@ -60,7 +57,7 @@ import {
   Flame,
   Trash2,
   MapPin,
-  Route,
+  Activity,
   Weight,
   Banknote,
   TrendingUp,
@@ -1790,88 +1787,84 @@ const PCFRequestView: React.FC = () => {
                 ),
                 children: (
                   <div className="pt-4">
-                    {/* Emissions Breakdown — per-stage progress bars */}
-                    <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                      <Leaf size={18} className="text-green-600" />
-                      Emissions Breakdown
-                    </h4>
-                    <div className="space-y-4">
-                      {(requestData?.bom_list || []).map(
-                        (item: any, index: number) => {
-                          const e =
-                            item.pcf_total_emission_calculation || {};
-                          const total = e.total_pcf_value || 0;
-                          const stages = [
-                            { label: "Materials", value: e.material_value || 0 },
-                            {
-                              label: "Production",
-                              value: e.production_value || 0,
-                            },
-                            {
-                              label: "Packaging",
-                              value: e.packaging_value || 0,
-                            },
-                            { label: "Waste", value: e.waste_value || 0 },
-                            {
-                              label: "Logistics",
-                              value: e.logistic_value || 0,
-                            },
-                          ];
-                          return (
-                            <div
-                              key={item.id || index}
-                              className="bg-white rounded-[14px] p-5 border border-[#EEF1F5]"
-                            >
-                              <div className="flex items-center justify-between mb-3">
-                                <div>
-                                  <h5 className="font-medium text-gray-900">
-                                    {item.component_name || "-"}
-                                  </h5>
-                                  <p className="text-xs text-gray-500 font-mono">
-                                    {item.material_number || "-"}
-                                  </p>
-                                </div>
-                                <Tag color="green">
-                                  {total.toFixed(4)} kg CO₂e
-                                </Tag>
-                              </div>
-                              <div className="flex flex-col gap-4">
-                                {stages.map((s) => {
-                                  const pct =
-                                    total > 0 ? (s.value / total) * 100 : 0;
-                                  return (
-                                    <div key={s.label}>
-                                      <div className="flex items-baseline justify-between gap-3 mb-1.5">
-                                        <div className="text-[13.5px] font-bold text-gray-800">
-                                          {s.label}
-                                        </div>
-                                        <span className="text-sm font-extrabold text-[#15803D]">
-                                          {s.value.toFixed(4)}
-                                        </span>
-                                      </div>
-                                      <div className="flex items-center gap-2.5">
-                                        <div className="flex-1 h-[9px] bg-[#F1F5F9] rounded-[5px] overflow-hidden">
-                                          <div
-                                            className="h-full rounded-[5px]"
-                                            style={{
-                                              width: `${Math.min(pct, 100)}%`,
-                                              background:
-                                                "linear-gradient(90deg,#22C55E,#15803D)",
-                                            }}
-                                          />
-                                        </div>
-                                        <span className="text-xs font-bold text-gray-500 w-[52px] text-right">
-                                          {pct.toFixed(1)}%
-                                        </span>
-                                      </div>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            </div>
+                    {/* Emissions Breakdown — per-component / per-stage table (D2 design) */}
+                    <div className="border border-[#EEF1F5] rounded-[14px] overflow-hidden">
+                      <div
+                        className="grid text-white text-[10.5px] font-bold uppercase tracking-wide"
+                        style={{
+                          gridTemplateColumns:
+                            "1.4fr 1fr repeat(6, 0.85fr) 0.7fr",
+                          background: "linear-gradient(90deg,#16A34A,#0E9F6E)",
+                        }}
+                      >
+                        <div className="px-4 py-[13px]">Component</div>
+                        <div className="px-2 py-[13px]">Material No.</div>
+                        <div className="px-2 py-[13px] text-right">Material</div>
+                        <div className="px-2 py-[13px] text-right">Production</div>
+                        <div className="px-2 py-[13px] text-right">Packaging</div>
+                        <div className="px-2 py-[13px] text-right">Waste</div>
+                        <div className="px-2 py-[13px] text-right">Logistics</div>
+                        <div className="px-2 py-[13px] text-right">Total PCF</div>
+                        <div className="px-3.5 py-[13px] text-right">% Total</div>
+                      </div>
+                      <div className="divide-y divide-[#EEF1F5]">
+                        {(() => {
+                          const bomList = requestData?.bom_list || [];
+                          const grandTotal = bomList.reduce(
+                            (sum: number, item: any) =>
+                              sum +
+                              (item.pcf_total_emission_calculation
+                                ?.total_pcf_value || 0),
+                            0,
                           );
-                        },
-                      )}
+                          return bomList.map((item: any, index: number) => {
+                            const e =
+                              item.pcf_total_emission_calculation || {};
+                            const pct =
+                              grandTotal > 0
+                                ? ((e.total_pcf_value || 0) / grandTotal) * 100
+                                : 0;
+                            return (
+                              <div
+                                key={item.id || index}
+                                className="grid items-center text-[13px] hover:bg-[#F8FAFB]"
+                                style={{
+                                  gridTemplateColumns:
+                                    "1.4fr 1fr repeat(6, 0.85fr) 0.7fr",
+                                }}
+                              >
+                                <div className="px-4 py-[15px] font-bold text-gray-900">
+                                  {item.component_name || "-"}
+                                </div>
+                                <div className="px-2 py-[15px] font-mono text-[11.5px] text-[#64748B]">
+                                  {item.material_number || "-"}
+                                </div>
+                                <div className="px-2 py-[15px] text-right text-gray-900">
+                                  {(e.material_value || 0).toFixed(4)}
+                                </div>
+                                <div className="px-2 py-[15px] text-right text-gray-900">
+                                  {(e.production_value || 0).toFixed(4)}
+                                </div>
+                                <div className="px-2 py-[15px] text-right text-gray-900">
+                                  {(e.packaging_value || 0).toFixed(4)}
+                                </div>
+                                <div className="px-2 py-[15px] text-right text-gray-900">
+                                  {(e.waste_value || 0).toFixed(4)}
+                                </div>
+                                <div className="px-2 py-[15px] text-right text-gray-900">
+                                  {(e.logistic_value || 0).toFixed(4)}
+                                </div>
+                                <div className="px-2 py-[15px] text-right font-extrabold text-[#15803D]">
+                                  {(e.total_pcf_value || 0).toFixed(4)}
+                                </div>
+                                <div className="px-3.5 py-[15px] text-right font-extrabold text-[#15803D]">
+                                  {pct.toFixed(1)}%
+                                </div>
+                              </div>
+                            );
+                          });
+                        })()}
+                      </div>
                     </div>
 
                     {/* Material Breakdown for each component */}
@@ -1966,25 +1959,25 @@ const PCFRequestView: React.FC = () => {
                 children: (
                   <div className="pt-4">
                     {/* Transport Summary Table */}
-                    <div className="overflow-x-auto">
+                    <div className="overflow-x-auto border border-[#EEF1F5] rounded-[14px]">
                       <table className="min-w-full">
                         <thead>
                           <tr className="bg-gradient-to-r from-green-600 to-emerald-600">
                             <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider w-12"></th>
                             <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider">
-                              Component Name
+                              Component
                             </th>
                             <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider">
-                              Material Number
+                              Material No.
                             </th>
                             <th className="px-4 py-3 text-center text-xs font-semibold text-white uppercase tracking-wider">
                               Segments
                             </th>
                             <th className="px-4 py-3 text-right text-xs font-semibold text-white uppercase tracking-wider">
-                              Total Distance (km)
+                              Distance
                             </th>
                             <th className="px-4 py-3 text-right text-xs font-semibold text-white uppercase tracking-wider">
-                              Emissions (kg CO₂e)
+                              Emissions
                             </th>
                           </tr>
                         </thead>
@@ -2045,7 +2038,7 @@ const PCFRequestView: React.FC = () => {
                                       {transportDetails.length}
                                     </td>
                                     <td className="px-4 py-3 text-sm text-gray-900 text-right">
-                                      {totalDistance.toLocaleString()}
+                                      {totalDistance.toLocaleString()} km
                                     </td>
                                     <td className="px-4 py-3 text-sm font-semibold text-green-700 text-right">
                                       {totalTransportEmission.toFixed(4)}
@@ -2060,7 +2053,7 @@ const PCFRequestView: React.FC = () => {
                                         >
                                           <div className="ml-8">
                                             <h5 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                                              <Route
+                                              <Activity
                                                 size={16}
                                                 className="text-green-600"
                                               />
@@ -2078,59 +2071,28 @@ const PCFRequestView: React.FC = () => {
                                                       <div className="text-[11px] font-bold uppercase tracking-wide text-gray-400 mb-1.5">
                                                         Leg {legIdx + 1}
                                                       </div>
-                                                      <div className="flex items-center gap-2 mb-2">
-                                                        {leg.mode_of_transport
-                                                          ?.toLowerCase()
-                                                          .includes("ship") ||
-                                                        leg.mode_of_transport
-                                                          ?.toLowerCase()
-                                                          .includes("sea") ? (
-                                                          <Ship
-                                                            size={20}
-                                                            className="text-green-600"
-                                                          />
-                                                        ) : leg.mode_of_transport
-                                                            ?.toLowerCase()
-                                                            .includes("rail") ||
-                                                          leg.mode_of_transport
-                                                            ?.toLowerCase()
-                                                            .includes("train") ? (
-                                                          <Train
-                                                            size={20}
-                                                            className="text-green-600"
-                                                          />
-                                                        ) : leg.mode_of_transport
-                                                            ?.toLowerCase()
-                                                            .includes("plane") ||
-                                                          leg.mode_of_transport
-                                                            ?.toLowerCase()
-                                                            .includes("air") ||
-                                                          leg.mode_of_transport
-                                                            ?.toLowerCase()
-                                                            .includes("flight") ? (
-                                                          <Plane
-                                                            size={20}
-                                                            className="text-green-600"
-                                                          />
-                                                        ) : (
-                                                          <Truck
-                                                            size={20}
-                                                            className="text-green-600"
-                                                          />
-                                                        )}
-                                                        <span className="text-sm font-medium text-gray-900">
-                                                          {leg.mode_of_transport || "N/A"}
-                                                        </span>
-                                                      </div>
-                                                      <div className="text-xs text-gray-500 mb-1">
-                                                        {leg.source_point} →{" "}
+                                                      <div className="text-[13px] font-bold text-gray-900 leading-snug">
+                                                        {leg.source_point}{" "}
+                                                        <span className="text-gray-400">
+                                                          →
+                                                        </span>{" "}
                                                         {leg.drop_point}
                                                       </div>
-                                                      <div className="text-xl font-extrabold text-gray-900">
-                                                        {leg.distance}
-                                                      </div>
-                                                      <div className="text-xs text-gray-400">
-                                                        {leg.weight_transported}
+                                                      <div className="flex items-baseline gap-2 mt-2">
+                                                        <span className="text-xl font-extrabold text-gray-900">
+                                                          {parseFloat(
+                                                            leg.distance || "0",
+                                                          ).toLocaleString()}
+                                                        </span>
+                                                        <span className="text-xs text-gray-400">
+                                                          km ·{" "}
+                                                          {Number(
+                                                            logisticCalcArr[legIdx]
+                                                              ?.leg_wise_transport_emissions_per_unit_kg_co2e ||
+                                                              0,
+                                                          ).toFixed(5)}{" "}
+                                                          kg CO₂e
+                                                        </span>
                                                       </div>
                                                     </div>
                                                     {legIdx <
@@ -2158,21 +2120,21 @@ const PCFRequestView: React.FC = () => {
                     </div>
 
                     {/* Transport Summary Cards */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
-                      <div className="bg-blue-50 rounded-xl p-4 border border-blue-100">
-                        <div className="text-2xl font-bold text-blue-700">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5 mt-[18px]">
+                      <div className="bg-[#EFF5FF] rounded-[14px] p-[18px]">
+                        <div className="text-[26px] font-extrabold tracking-tight text-[#2563EB]">
                           {(requestData?.bom_list || []).reduce(
                             (sum: number, item: any) =>
                               sum + (item.transportation_details?.length || 0),
                             0,
                           )}
                         </div>
-                        <div className="text-xs text-gray-500 mt-1">
+                        <div className="text-[13px] font-bold text-[#334155] mt-1">
                           Total Segments
                         </div>
                       </div>
-                      <div className="bg-purple-50 rounded-xl p-4 border border-purple-100">
-                        <div className="text-2xl font-bold text-purple-700">
+                      <div className="bg-[#F5F0FF] rounded-[14px] p-[18px]">
+                        <div className="text-[26px] font-extrabold tracking-tight text-[#7C3AED]">
                           {(requestData?.bom_list || [])
                             .reduce((sum: number, item: any) => {
                               const details = item.transportation_details || [];
@@ -2187,12 +2149,12 @@ const PCFRequestView: React.FC = () => {
                             }, 0)
                             .toLocaleString()}
                         </div>
-                        <div className="text-xs text-gray-500 mt-1">
+                        <div className="text-[13px] font-bold text-[#334155] mt-1">
                           Total Distance (km)
                         </div>
                       </div>
-                      <div className="bg-orange-50 rounded-xl p-4 border border-orange-100">
-                        <div className="text-2xl font-bold text-orange-700">
+                      <div className="bg-[#FFF4EC] rounded-[14px] p-[18px]">
+                        <div className="text-[26px] font-extrabold tracking-tight text-[#EA580C]">
                           {(requestData?.bom_list || [])
                             .reduce(
                               (sum: number, item: any) => {
@@ -2206,12 +2168,12 @@ const PCFRequestView: React.FC = () => {
                             )
                             .toFixed(2)}
                         </div>
-                        <div className="text-xs text-gray-500 mt-1">
+                        <div className="text-[13px] font-bold text-[#334155] mt-1">
                           Mass Transported (kg)
                         </div>
                       </div>
-                      <div className="bg-green-50 rounded-xl p-4 border border-green-200">
-                        <div className="text-2xl font-bold text-green-700">
+                      <div className="bg-[#ECFDF3] rounded-[14px] p-[18px]">
+                        <div className="text-[26px] font-extrabold tracking-tight text-[#15803D]">
                           {(requestData?.bom_list || [])
                             .reduce(
                               (sum: number, item: any) =>
@@ -2222,10 +2184,10 @@ const PCFRequestView: React.FC = () => {
                             )
                             .toFixed(4)}
                         </div>
-                        <div className="text-xs text-gray-500 mt-1">
-                          Total Logistics Emission
+                        <div className="text-[13px] font-bold text-[#334155] mt-1">
+                          Logistics Emission
                         </div>
-                        <div className="text-xs text-gray-400">kg CO₂e</div>
+                        <div className="text-[11px] text-gray-400">kg CO₂e</div>
                       </div>
                     </div>
                   </div>
@@ -2242,30 +2204,30 @@ const PCFRequestView: React.FC = () => {
                 children: (
                   <div className="pt-4">
                     {/* Allocation Methods Table */}
-                    <div className="overflow-x-auto">
+                    <div className="overflow-x-auto border border-[#EEF1F5] rounded-[14px]">
                       <table className="min-w-full">
                         <thead>
                           <tr className="bg-gradient-to-r from-green-600 to-emerald-600">
                             <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider">
-                              Component Name
+                              Component
                             </th>
                             <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider">
-                              Material Number
+                              Material No.
                             </th>
-                            <th className="px-4 py-3 text-center text-xs font-semibold text-white uppercase tracking-wider">
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider">
                               Allocation Method
                             </th>
                             <th className="px-4 py-3 text-right text-xs font-semibold text-white uppercase tracking-wider">
-                              Economic Ratio (%)
+                              Econ. Ratio
                             </th>
                             <th className="px-4 py-3 text-right text-xs font-semibold text-white uppercase tracking-wider">
-                              PCF (kg CO₂e)
+                              PCF
                             </th>
                             <th className="px-4 py-3 text-right text-xs font-semibold text-white uppercase tracking-wider">
-                              Weight (g)
+                              Weight
                             </th>
                             <th className="px-4 py-3 text-right text-xs font-semibold text-white uppercase tracking-wider">
-                              Price (₹)
+                              Price
                             </th>
                           </tr>
                         </thead>
@@ -2294,7 +2256,7 @@ const PCFRequestView: React.FC = () => {
                                   <td className="px-4 py-3 text-sm text-gray-600 font-mono">
                                     {item.material_number || "-"}
                                   </td>
-                                  <td className="px-4 py-3 text-center">
+                                  <td className="px-4 py-3 text-left">
                                     <Tag
                                       color={
                                         allocationMethod?.includes("Economic")
@@ -2315,10 +2277,17 @@ const PCFRequestView: React.FC = () => {
                                     ).toFixed(4)}
                                   </td>
                                   <td className="px-4 py-3 text-sm text-gray-900 text-right">
-                                    {(item.weight_gms || 0).toFixed(2)}
+                                    {(item.weight_gms || 0).toFixed(2)} g
                                   </td>
                                   <td className="px-4 py-3 text-sm text-gray-900 text-right">
-                                    ₹{(item.price || 0).toFixed(2)}
+                                    ₹
+                                    {Number(item.price || 0).toLocaleString(
+                                      "en-IN",
+                                      {
+                                        minimumFractionDigits: 2,
+                                        maximumFractionDigits: 2,
+                                      },
+                                    )}
                                   </td>
                                 </tr>
                               );
@@ -2329,9 +2298,9 @@ const PCFRequestView: React.FC = () => {
                     </div>
 
                     {/* Allocation Summary Cards */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
-                      <div className="bg-yellow-50 rounded-xl p-4 border border-yellow-200">
-                        <div className="text-2xl font-bold text-yellow-700">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5 mt-[18px]">
+                      <div className="bg-[#FFF8E8] rounded-[14px] p-[18px]">
+                        <div className="text-[26px] font-extrabold tracking-tight text-[#B45309]">
                           {(() => {
                             const bomList = requestData?.bom_list || [];
                             const totalER = bomList.reduce(
@@ -2344,12 +2313,12 @@ const PCFRequestView: React.FC = () => {
                               : "0";
                           })()}
                         </div>
-                        <div className="text-xs text-gray-500 mt-1">
+                        <div className="text-[13px] font-bold text-[#334155] mt-1">
                           Avg Economic Ratio
                         </div>
                       </div>
-                      <div className="bg-green-50 rounded-xl p-4 border border-green-100">
-                        <div className="text-2xl font-bold text-green-700">
+                      <div className="bg-[#ECFDF3] rounded-[14px] p-[18px]">
+                        <div className="text-[26px] font-extrabold tracking-tight text-[#15803D]">
                           {
                             (requestData?.bom_list || []).filter(
                               (item: any) => {
@@ -2363,12 +2332,12 @@ const PCFRequestView: React.FC = () => {
                             ).length
                           }
                         </div>
-                        <div className="text-xs text-gray-500 mt-1">
+                        <div className="text-[13px] font-bold text-[#334155] mt-1">
                           Physical Allocation
                         </div>
                       </div>
-                      <div className="bg-blue-50 rounded-xl p-4 border border-blue-100">
-                        <div className="text-2xl font-bold text-blue-700">
+                      <div className="bg-[#EFF5FF] rounded-[14px] p-[18px]">
+                        <div className="text-[26px] font-extrabold tracking-tight text-[#2563EB]">
                           {
                             (requestData?.bom_list || []).filter(
                               (item: any) => {
@@ -2382,12 +2351,12 @@ const PCFRequestView: React.FC = () => {
                             ).length
                           }
                         </div>
-                        <div className="text-xs text-gray-500 mt-1">
+                        <div className="text-[13px] font-bold text-[#334155] mt-1">
                           Economic Allocation
                         </div>
                       </div>
-                      <div className="bg-purple-50 rounded-xl p-4 border border-purple-100">
-                        <div className="text-2xl font-bold text-purple-700">
+                      <div className="bg-[#F5F0FF] rounded-[14px] p-[18px]">
+                        <div className="text-[26px] font-extrabold tracking-tight text-[#7C3AED]">
                           {
                             (requestData?.bom_list || []).filter(
                               (item: any) =>
@@ -2395,7 +2364,7 @@ const PCFRequestView: React.FC = () => {
                             ).length
                           }
                         </div>
-                        <div className="text-xs text-gray-500 mt-1">
+                        <div className="text-[13px] font-bold text-[#334155] mt-1">
                           Split Allocation
                         </div>
                       </div>
@@ -2418,7 +2387,7 @@ const PCFRequestView: React.FC = () => {
                             return (
                               <div
                                 key={item.id || idx}
-                                className="bg-gray-50 rounded-xl p-4 border border-gray-200"
+                                className="bg-white rounded-[14px] p-5 border border-[#EEF1F5]"
                               >
                                 <div className="flex items-center justify-between mb-3">
                                   <div>
@@ -2439,15 +2408,16 @@ const PCFRequestView: React.FC = () => {
                                     }
                                   >
                                     {production.allocation_methodology ||
-                                      "Physical"}
+                                      "Physical"}{" "}
+                                    Method
                                   </Tag>
                                 </div>
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                   <div>
                                     <p className="text-xs text-gray-500">
                                       Component Weight
                                     </p>
-                                    <p className="font-medium">
+                                    <p className="text-base font-extrabold text-gray-900 mt-1">
                                       {(
                                         production.component_weight_kg || 0
                                       ).toFixed(4)}{" "}
@@ -2458,7 +2428,7 @@ const PCFRequestView: React.FC = () => {
                                     <p className="text-xs text-gray-500">
                                       Factory Total Weight
                                     </p>
-                                    <p className="font-medium">
+                                    <p className="text-base font-extrabold text-gray-900 mt-1">
                                       {(
                                         production.total_weight_produced_at_factory_level_kg ||
                                         0
@@ -2470,48 +2440,51 @@ const PCFRequestView: React.FC = () => {
                                     <p className="text-xs text-gray-500">
                                       Products Produced
                                     </p>
-                                    <p className="font-medium">
-                                      {production.no_of_products_current_component_produced ||
-                                        0}
+                                    <p className="text-base font-extrabold text-gray-900 mt-1">
+                                      {Number(
+                                        production.no_of_products_current_component_produced ||
+                                          0,
+                                      ).toLocaleString()}
                                     </p>
                                   </div>
                                   <div>
                                     <p className="text-xs text-gray-500">
-                                      Total Energy (kWh)
+                                      Total Energy
                                     </p>
-                                    <p className="font-medium">
+                                    <p className="text-base font-extrabold text-gray-900 mt-1">
                                       {(
                                         production.total_energy_consumed_at_factory_level_kwh ||
                                         0
-                                      ).toLocaleString()}
+                                      ).toLocaleString()}{" "}
+                                      kWh
                                     </p>
                                   </div>
                                 </div>
-                                <div className="mt-3 pt-3 border-t border-gray-200 grid grid-cols-4 gap-4 text-xs">
+                                <div className="mt-4 pt-4 border-t border-[#EEF1F5] grid grid-cols-4 gap-4">
                                   <div>
-                                    <p className="text-gray-400">
+                                    <p className="text-xs text-gray-400">
                                       Electricity EF
                                     </p>
-                                    <p className="font-medium">
+                                    <p className="text-sm font-bold text-gray-900 mt-1">
                                       {production.emission_factor_of_electricity ||
                                         0}
                                     </p>
                                   </div>
                                   <div>
-                                    <p className="text-gray-400">Heat EF</p>
-                                    <p className="font-medium">
+                                    <p className="text-xs text-gray-400">Heat EF</p>
+                                    <p className="text-sm font-bold text-gray-900 mt-1">
                                       {production.emission_factor_of_heat || 0}
                                     </p>
                                   </div>
                                   <div>
-                                    <p className="text-gray-400">Steam EF</p>
-                                    <p className="font-medium">
+                                    <p className="text-xs text-gray-400">Steam EF</p>
+                                    <p className="text-sm font-bold text-gray-900 mt-1">
                                       {production.emission_factor_of_steam || 0}
                                     </p>
                                   </div>
                                   <div>
-                                    <p className="text-gray-400">Cooling EF</p>
-                                    <p className="font-medium">
+                                    <p className="text-xs text-gray-400">Cooling EF</p>
+                                    <p className="text-sm font-bold text-gray-900 mt-1">
                                       {production.emission_factor_of_cooling ||
                                         0}
                                     </p>
