@@ -620,7 +620,7 @@ const PCFRequestView: React.FC = () => {
         className="flex items-center gap-2 text-sm text-gray-500 font-semibold cursor-pointer w-fit mb-4 hover:text-gray-700 transition-colors"
       >
         <ChevronLeft size={18} />
-        Back to PCF Requests
+        Back to Footprint Connect
       </div>
 
       {/* Rejection Banner */}
@@ -1016,7 +1016,7 @@ const PCFRequestView: React.FC = () => {
               <CheckSquare size={24} className="text-green-600" />
             </div>
             <Title level={4} className="m-0">
-              Task Management
+              Workflow Center
             </Title>
           </div>
 
@@ -1643,7 +1643,7 @@ const PCFRequestView: React.FC = () => {
                 label: (
                   <span className="flex items-center gap-2">
                     <Eye size={16} />
-                    Overview
+                    Footprint Overview
                   </span>
                 ),
                 children: (
@@ -1858,7 +1858,7 @@ const PCFRequestView: React.FC = () => {
                 label: (
                   <span className="flex items-center gap-2">
                     <Leaf size={16} />
-                    Emissions
+                    Emissions Breakdown
                   </span>
                 ),
                 children: (
@@ -2040,7 +2040,7 @@ const PCFRequestView: React.FC = () => {
                 label: (
                   <span className="flex items-center gap-2">
                     <Truck size={16} />
-                    Transport
+                    Logistics Impact
                   </span>
                 ),
                 children: (
@@ -2313,7 +2313,7 @@ const PCFRequestView: React.FC = () => {
                 label: (
                   <span className="flex items-center gap-2">
                     <PieChart size={16} />
-                    Allocation
+                    Allocation Method
                   </span>
                 ),
                 children: (
