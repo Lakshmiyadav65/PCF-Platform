@@ -591,6 +591,27 @@ const PCFRequestView: React.FC = () => {
   const completedStagesCount = Math.min(getCompletedStepsCount(), steps.length);
   const formatWeight = (g: number) =>
     Number.isInteger(g) ? g.toLocaleString("en-IN") : g.toFixed(2);
+  // Show only the region + state of a long address: drops the street, a trailing
+  // country (when 3+ segments), and postal codes — e.g.
+  // "Plot 45, Gachibowli, Hyderabad, Telangana 500032, India" -> "Hyderabad, Telangana".
+  const mainAddress = (addr: string) => {
+    let parts = String(addr || "")
+      .split(",")
+      .map((p) => p.trim())
+      .filter(Boolean);
+    if (parts.length === 0) return String(addr || "-");
+    if (parts.length >= 3) parts = parts.slice(0, -1); // drop trailing country
+    const cleaned = parts
+      .slice(-2) // keep region + state
+      .map((p) =>
+        p
+          .replace(/\b\d[\d\s-]*\b/g, "") // strip postal codes
+          .replace(/\s+/g, " ")
+          .trim(),
+      )
+      .filter(Boolean);
+    return cleaned.join(", ") || String(addr || "-");
+  };
   const isHighPriority = ["high", "critical", "urgent"].includes(
     (requestData.priority || "").toLowerCase(),
   );
@@ -2059,7 +2080,7 @@ const PCFRequestView: React.FC = () => {
                                               />
                                               Transport Journey
                                             </h5>
-                                            <div className="flex items-center gap-2 flex-wrap">
+                                            <div className="flex items-stretch gap-2">
                                               {transportDetails.map(
                                                 (leg: any, legIdx: number) => (
                                                   <React.Fragment
@@ -2067,16 +2088,19 @@ const PCFRequestView: React.FC = () => {
                                                       leg.motuft_id || legIdx
                                                     }
                                                   >
-                                                    <div className="bg-white rounded-[13px] p-4 border border-[#E6EAF0] shadow-sm min-w-[180px]">
+                                                    <div className="flex-1 min-w-0 bg-white rounded-[13px] p-4 border border-[#E6EAF0] shadow-sm">
                                                       <div className="text-[11px] font-bold uppercase tracking-wide text-gray-400 mb-1.5">
                                                         Leg {legIdx + 1}
                                                       </div>
-                                                      <div className="text-[13px] font-bold text-gray-900 leading-snug">
-                                                        {leg.source_point}{" "}
+                                                      <div
+                                                        className="text-[13px] font-bold text-gray-900 leading-snug"
+                                                        title={`${leg.source_point} → ${leg.drop_point}`}
+                                                      >
+                                                        {mainAddress(leg.source_point)}{" "}
                                                         <span className="text-gray-400">
                                                           →
                                                         </span>{" "}
-                                                        {leg.drop_point}
+                                                        {mainAddress(leg.drop_point)}
                                                       </div>
                                                       <div className="flex items-baseline gap-2 mt-2">
                                                         <span className="text-xl font-extrabold text-gray-900">
@@ -2100,7 +2124,7 @@ const PCFRequestView: React.FC = () => {
                                                         1 && (
                                                       <ArrowRight
                                                         size={20}
-                                                        className="text-gray-400 flex-shrink-0"
+                                                        className="text-gray-400 flex-shrink-0 self-center"
                                                       />
                                                     )}
                                                   </React.Fragment>
