@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { message } from "antd";
 import { ArrowLeft, ArrowRight, Check } from "lucide-react";
 import ProductBasicsStep from "../features/product-footprint/ProductBasicsStep";
+import { getBasicsErrors } from "../features/product-footprint/validation";
 import CompositionStep from "../features/product-footprint/CompositionStep";
 import ManufacturingStep from "../features/product-footprint/ManufacturingStep";
 import { cn } from "../lib/utils";
@@ -25,6 +26,7 @@ const STEPS = [
 const ProductFootprintCreate: React.FC = () => {
   const navigate = useNavigate();
   const [current, setCurrent] = useState(0);
+  const [showBasicsErrors, setShowBasicsErrors] = useState(false);
 
   const [basics, setBasics] = useState<ProductBasics>(emptyBasics);
   const [composition, setComposition] = useState<BomRow[]>([]);
@@ -38,11 +40,8 @@ const ProductFootprintCreate: React.FC = () => {
 
   const canContinue = (): boolean => {
     if (current === 0) {
-      return Boolean(
-        basics.productName.trim() &&
-          basics.manufacturedIn.trim() &&
-          basics.manufacturingYear
-      );
+      // Single source of truth shared with the step's inline validation.
+      return Object.keys(getBasicsErrors(basics)).length === 0;
     }
     if (current === 1) {
       return composition.some((r) => r.description.trim());
@@ -53,6 +52,7 @@ const ProductFootprintCreate: React.FC = () => {
   const isLast = current === STEPS.length - 1;
 
   const handleBack = () => {
+    setShowBasicsErrors(false);
     if (current === 0) {
       navigate("/product-footprints");
     } else {
@@ -62,9 +62,15 @@ const ProductFootprintCreate: React.FC = () => {
 
   const handleContinue = () => {
     if (!canContinue()) {
-      message.warning("Please complete the required fields to continue.");
+      // Surface inline field errors on Product Basics; toast elsewhere.
+      if (current === 0) {
+        setShowBasicsErrors(true);
+      } else {
+        message.warning("Please complete the required fields to continue.");
+      }
       return;
     }
+    setShowBasicsErrors(false);
     if (isLast) {
       message.success(`Product footprint for "${basics.productName}" created.`);
       navigate("/product-footprints");
@@ -145,7 +151,11 @@ const ProductFootprintCreate: React.FC = () => {
         {/* Step content */}
         <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm sm:p-8">
           {current === 0 && (
-            <ProductBasicsStep value={basics} onChange={patchBasics} />
+            <ProductBasicsStep
+              value={basics}
+              onChange={patchBasics}
+              showErrors={showBasicsErrors}
+            />
           )}
           {current === 1 && (
             <CompositionStep

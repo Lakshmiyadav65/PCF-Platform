@@ -105,10 +105,10 @@ const CompositionStep: React.FC<CompositionStepProps> = ({
   return (
     <div>
       {/* Heading + trust strip */}
-      <div className="flex flex-wrap items-start justify-between gap-4">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="max-w-2xl">
           <div className="flex items-center gap-2">
-            <ClipboardList className="h-5 w-5 text-green-600" />
+            <ClipboardList className="h-5 w-5 shrink-0 text-green-600" />
             <h2 className="text-xl font-bold text-gray-900">
               Add your product components and materials
             </h2>
@@ -119,12 +119,12 @@ const CompositionStep: React.FC<CompositionStepProps> = ({
             everything before saving.
           </p>
         </div>
-        <div className="text-right">
-          <div className="flex items-center justify-end gap-2 text-sm font-medium text-gray-600">
-            <ShieldCheck className="h-4 w-4 text-green-600" />
+        <div className="flex shrink-0 flex-col gap-2 lg:items-end">
+          <div className="flex items-center gap-2 text-sm font-medium text-gray-600">
+            <ShieldCheck className="h-4 w-4 shrink-0 text-green-600" />
             Uploaded files are deleted after processing.
           </div>
-          <div className="mt-2 flex items-center justify-end gap-2">
+          <div className="flex items-center gap-2">
             <span className="rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-200">
               ISO 27001
             </span>
