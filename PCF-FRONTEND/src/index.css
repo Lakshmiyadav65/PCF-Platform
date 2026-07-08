@@ -282,6 +282,31 @@ nav a.sidebar-menu-item.active {
   background: transparent;
 }
 
+/* Chunky, clearly-visible horizontal scrollbar for the wide questionnaire
+   tables so it's easy to grab/drag (the thin default bar was fiddly).
+   Shift + mouse-wheel scrolls horizontally too. */
+.qtable-scroll {
+  scrollbar-width: auto;
+  scrollbar-color: #9aa7b2 #eef2f5;
+  overscroll-behavior-x: contain;
+}
+.qtable-scroll::-webkit-scrollbar {
+  height: 16px;
+}
+.qtable-scroll::-webkit-scrollbar-track {
+  background: #eef2f5;
+  border-radius: 9px;
+}
+.qtable-scroll::-webkit-scrollbar-thumb {
+  background: #9aa7b2;
+  border-radius: 9px;
+  border: 3px solid #eef2f5;
+  min-width: 48px;
+}
+.qtable-scroll::-webkit-scrollbar-thumb:hover {
+  background: #7c8a96;
+}
+
 /* Soften Ant controls to match the mock field look */
 .sq-fullform .ant-input,
 .sq-fullform .ant-input-number,
@@ -293,4 +318,17 @@ nav a.sidebar-menu-item.active {
 
 .sq-fullform .ant-input-number {
   width: 100%;
+}
+
+/* Disabled "default/locked" fields: show the value in dark, readable text on a
+   subtle grey field so it clearly reads as a pre-filled default, not a faint
+   placeholder. */
+.sq-fullform .ant-input[disabled],
+.sq-fullform .ant-input-disabled,
+.sq-fullform .ant-input-number-disabled .ant-input-number-input,
+.sq-fullform .ant-picker-disabled input {
+  color: #0f1b24 !important;
+  -webkit-text-fill-color: #0f1b24 !important;
+  background-color: #f1f5f9;
+  cursor: default;
 }

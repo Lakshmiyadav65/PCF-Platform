@@ -27,6 +27,7 @@ import {
 import dayjs from "dayjs";
 import { useAuth } from "../../contexts/AuthContext";
 import {
+  getEfTaxonomyOptions,
   getEmissionFactorStats,
   importEmissionFactorsCsv,
   listEmissionFactors,
@@ -59,9 +60,17 @@ const EmissionFactorsTable: React.FC = () => {
 
   // Filters
   const [search, setSearch] = useState("");
-  const [countryCode, setCountryCode] = useState<string | undefined>();
-  const [unitKind, setUnitKind] = useState<string | undefined>();
-  const [sourceDb, setSourceDb] = useState<string | undefined>();
+
+  // Cascading taxonomy filters: Category → Sub-category → Group → Specific Type.
+  // Each selection narrows the options of the level below it (loaded on demand).
+  const [category, setCategory] = useState<string | undefined>();
+  const [subCategory, setSubCategory] = useState<string | undefined>();
+  const [groupName, setGroupName] = useState<string | undefined>();
+  const [specificType, setSpecificType] = useState<string | undefined>();
+  const [categoryOpts, setCategoryOpts] = useState<string[]>([]);
+  const [subCategoryOpts, setSubCategoryOpts] = useState<string[]>([]);
+  const [groupOpts, setGroupOpts] = useState<string[]>([]);
+  const [specificTypeOpts, setSpecificTypeOpts] = useState<string[]>([]);
 
   // Stats
   const [stats, setStats] = useState<EmissionFactorStats | null>(null);
@@ -91,9 +100,10 @@ const EmissionFactorsTable: React.FC = () => {
         page,
         limit: pageSize,
         search: search.trim() || undefined,
-        country_code: countryCode,
-        unit_kind: unitKind,
-        source_db: sourceDb,
+        category,
+        sub_category: subCategory,
+        group: groupName,
+        specific_type: specificType,
       });
       if (mySeq !== fetchSeq.current) return; // stale — newer request already issued
       setRows(resp.data || []);
@@ -106,7 +116,7 @@ const EmissionFactorsTable: React.FC = () => {
     } finally {
       if (mySeq === fetchSeq.current) setLoading(false);
     }
-  }, [page, pageSize, search, countryCode, unitKind, sourceDb, reloadKey]);
+  }, [page, pageSize, search, category, subCategory, groupName, specificType, reloadKey]);
 
   const fetchStats = useCallback(async () => {
     try {
@@ -125,6 +135,67 @@ const EmissionFactorsTable: React.FC = () => {
     fetchStats();
   }, [fetchStats]);
 
+  // Load the top-level Category options once (the cascade's root).
+  useEffect(() => {
+    getEfTaxonomyOptions({ level: "category" })
+      .then(setCategoryOpts)
+      .catch(() => {});
+  }, []);
+
+  // Cascade handlers: picking a level clears every level below it (both the
+  // selected value and its now-stale options), then loads the child options.
+  const onCategoryChange = (val?: string) => {
+    setCategory(val);
+    setSubCategory(undefined);
+    setGroupName(undefined);
+    setSpecificType(undefined);
+    setSubCategoryOpts([]);
+    setGroupOpts([]);
+    setSpecificTypeOpts([]);
+    setPage(1);
+    if (val) {
+      getEfTaxonomyOptions({ level: "sub_category", category: val })
+        .then(setSubCategoryOpts)
+        .catch(() => {});
+    }
+  };
+
+  const onSubCategoryChange = (val?: string) => {
+    setSubCategory(val);
+    setGroupName(undefined);
+    setSpecificType(undefined);
+    setGroupOpts([]);
+    setSpecificTypeOpts([]);
+    setPage(1);
+    if (val && category) {
+      getEfTaxonomyOptions({ level: "group", category, sub_category: val })
+        .then(setGroupOpts)
+        .catch(() => {});
+    }
+  };
+
+  const onGroupChange = (val?: string) => {
+    setGroupName(val);
+    setSpecificType(undefined);
+    setSpecificTypeOpts([]);
+    setPage(1);
+    if (val && category && subCategory) {
+      getEfTaxonomyOptions({
+        level: "specific_type",
+        category,
+        sub_category: subCategory,
+        group: val,
+      })
+        .then(setSpecificTypeOpts)
+        .catch(() => {});
+    }
+  };
+
+  const onSpecificTypeChange = (val?: string) => {
+    setSpecificType(val);
+    setPage(1);
+  };
+
   const onSearchChange = (val: string) => {
     setSearch(val);
     if (lastSearchDebounce.current) window.clearTimeout(lastSearchDebounce.current);
@@ -139,9 +210,15 @@ const EmissionFactorsTable: React.FC = () => {
       lastSearchDebounce.current = null;
     }
     setSearch("");
-    setCountryCode(undefined);
-    setUnitKind(undefined);
-    setSourceDb(undefined);
+    // Clear the cascade selections + their stale child options (Category options
+    // stay — they're the root list and never change).
+    setCategory(undefined);
+    setSubCategory(undefined);
+    setGroupName(undefined);
+    setSpecificType(undefined);
+    setSubCategoryOpts([]);
+    setGroupOpts([]);
+    setSpecificTypeOpts([]);
     setPage(1);
     // Force a fresh fetch even if nothing actually changed (e.g. user clicked
     // Reset when no filters were applied) — guarantees the table refills.
@@ -213,45 +290,32 @@ const EmissionFactorsTable: React.FC = () => {
       ),
   });
 
+  // Columns mirror the source CSV exactly, in the same order and with the same
+  // headers: Category, Sub-category, Group, Specific Type, Geography, Unit,
+  // GWP 100 [kg CO₂e]. (ef_id is still the row key, just not shown as a column;
+  // the old "Dataset Name" column was removed — the source no longer has it.)
   const columns: ColumnsType<EmissionFactor> = useMemo(
     () => [
+      wrapCol("Category", "category", 180),
+      wrapCol("Sub-category", "sub_category", 180),
+      wrapCol("Group", "group_name", 240),
       {
-        title: "EF ID",
-        dataIndex: "ef_id",
-        key: "ef_id",
-        width: 110,
-        fixed: "left",
-        render: (v: string) => <code className="text-xs">{v}</code>,
-      },
-      {
-        title: "Product",
-        dataIndex: "product",
-        key: "product",
-        width: 280,
-        fixed: "left",
+        title: "Specific Type",
+        dataIndex: "specific_type",
+        key: "specific_type",
+        width: 300,
         render: (v: string) => (
           <span className="whitespace-normal break-words leading-snug">{v}</span>
         ),
       },
-      wrapCol("Material", "material", 200),
-      wrapCol("Process", "process", 220),
-      wrapCol("Activity Type", "activity_type", 170),
-      wrapCol("Category", "category", 170),
-      wrapCol("Sub Category 1", "sub_category_1", 190),
-      wrapCol("Sub Category 2", "sub_category_2", 190),
-      wrapCol("Sub Category 3", "sub_category_3", 210),
-      wrapCol("Sub Category 4", "sub_category_4", 210),
       {
-        title: "Country Code",
-        dataIndex: "country_code",
-        key: "country_code",
-        width: 130,
+        title: "Geography",
+        dataIndex: "geography",
+        key: "geography",
+        width: 120,
         render: (v: string | null) =>
           v ? <Tag color="blue">{v}</Tag> : <span className="text-gray-300">-</span>,
       },
-      wrapCol("Country Name", "country_name", 180),
-      wrapCol("Region", "region", 130),
-      wrapCol("Geo Fallback Chain", "geo_fallback_chain", 280),
       {
         title: "Unit",
         dataIndex: "unit",
@@ -260,42 +324,10 @@ const EmissionFactorsTable: React.FC = () => {
         render: (v: string | null) => v || <span className="text-gray-300">-</span>,
       },
       {
-        title: "Unit Kind",
-        dataIndex: "unit_kind",
-        key: "unit_kind",
-        width: 110,
-        render: (v: string | null) =>
-          v ? <Tag>{v}</Tag> : <span className="text-gray-300">-</span>,
-      },
-      {
-        title: "Recycled",
-        dataIndex: "recycled_content",
-        key: "recycled_content",
-        width: 100,
-        render: (v: string | null) =>
-          v ? (
-            <Tag color={v.toLowerCase() === "yes" ? "green" : "default"}>{v}</Tag>
-          ) : (
-            <span className="text-gray-300">-</span>
-          ),
-      },
-      {
-        title: "Factor Suitability",
-        dataIndex: "factor_suitability",
-        key: "factor_suitability",
-        width: 260,
-        render: (v: string | null) =>
-          v ? (
-            <span className="whitespace-normal break-words leading-snug">{v}</span>
-          ) : (
-            <span className="text-gray-300">-</span>
-          ),
-      },
-      {
-        title: "kgCO₂e / unit",
-        dataIndex: "kgco2e_per_unit",
-        key: "kgco2e_per_unit",
-        width: 140,
+        title: "GWP 100 [kg CO₂e]",
+        dataIndex: "gwp_100",
+        key: "gwp_100",
+        width: 170,
         align: "right",
         render: (v: number | string | null) => {
           const n = typeof v === "string" ? Number(v) : v;
@@ -306,34 +338,6 @@ const EmissionFactorsTable: React.FC = () => {
             </span>
           );
         },
-      },
-      {
-        title: "Year",
-        dataIndex: "reference_year",
-        key: "reference_year",
-        width: 80,
-        align: "right",
-        render: (v: number | null) => v ?? <span className="text-gray-300">-</span>,
-      },
-      {
-        title: "Source",
-        dataIndex: "source_db",
-        key: "source_db",
-        width: 130,
-        render: (v: string | null) =>
-          v ? <Tag>{v}</Tag> : <span className="text-gray-300">-</span>,
-      },
-      {
-        title: "Embedding Text",
-        dataIndex: "embedding_text",
-        key: "embedding_text",
-        width: 380,
-        render: (v: string | null) =>
-          v ? (
-            <span className="whitespace-normal break-words leading-snug text-gray-500">{v}</span>
-          ) : (
-            <span className="text-gray-300">-</span>
-          ),
       },
     ],
     []
@@ -395,14 +399,14 @@ const EmissionFactorsTable: React.FC = () => {
             <span className="text-xs font-semibold text-blue-700 tabular-nums">
               {stats?.country_count ?? "-"}
             </span>
-            <span className="text-xs text-blue-600/80">countries</span>
+            <span className="text-xs text-blue-600/80">geographies</span>
           </div>
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-50 border border-amber-100">
             <Ruler className="w-4 h-4 text-amber-600" />
             <span className="text-xs font-semibold text-amber-700 tabular-nums">
               {stats?.unit_kind_count ?? "-"}
             </span>
-            <span className="text-xs text-amber-600/80">unit families</span>
+            <span className="text-xs text-amber-600/80">domains</span>
           </div>
           {stats?.last_updated && (
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200">
@@ -421,42 +425,69 @@ const EmissionFactorsTable: React.FC = () => {
           <Input
             allowClear
             prefix={<Search size={14} />}
-            placeholder="Search any column (material, process, country, unit, source…)"
+            placeholder="Search any column (material, dataset, geography, category, unit…)"
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
             style={{ width: 440, flex: "1 1 320px", maxWidth: 560 }}
           />
+        </div>
+
+        {/* Cascading taxonomy filters: Category → Sub-category → Group →
+            Specific Type. Each one narrows the next. */}
+        <div className="flex items-center gap-3 flex-wrap mt-3 pt-3 border-t border-gray-100">
           <Select
+            showSearch
             allowClear
-            placeholder="Country code"
-            value={countryCode}
-            onChange={(v) => { setCountryCode(v); setPage(1); }}
-            style={{ width: 160 }}
+            placeholder="Category"
+            value={category}
+            onChange={onCategoryChange}
+            optionFilterProp="children"
+            style={{ width: 210 }}
           >
-            {["CH", "RER", "GLO", "RoW", "US", "IN", "DE"].map((c) => (
+            {categoryOpts.map((c) => (
               <Option key={c} value={c}>{c}</Option>
             ))}
           </Select>
           <Select
+            showSearch
             allowClear
-            placeholder="Unit family"
-            value={unitKind}
-            onChange={(v) => { setUnitKind(v); setPage(1); }}
-            style={{ width: 160 }}
+            placeholder="Sub-category"
+            value={subCategory}
+            onChange={onSubCategoryChange}
+            disabled={!category}
+            optionFilterProp="children"
+            style={{ width: 210 }}
           >
-            {["mass", "count", "energy", "area", "volume", "freight", "passenger"].map((u) => (
-              <Option key={u} value={u}>{u}</Option>
+            {subCategoryOpts.map((c) => (
+              <Option key={c} value={c}>{c}</Option>
             ))}
           </Select>
           <Select
+            showSearch
             allowClear
-            placeholder="Source DB"
-            value={sourceDb}
-            onChange={(v) => { setSourceDb(v); setPage(1); }}
-            style={{ width: 160 }}
+            placeholder="Group"
+            value={groupName}
+            onChange={onGroupChange}
+            disabled={!subCategory}
+            optionFilterProp="children"
+            style={{ width: 260 }}
           >
-            {["BAFU:2025"].map((s) => (
-              <Option key={s} value={s}>{s}</Option>
+            {groupOpts.map((c) => (
+              <Option key={c} value={c}>{c}</Option>
+            ))}
+          </Select>
+          <Select
+            showSearch
+            allowClear
+            placeholder="Specific Type"
+            value={specificType}
+            onChange={onSpecificTypeChange}
+            disabled={!groupName}
+            optionFilterProp="children"
+            style={{ width: 300 }}
+          >
+            {specificTypeOpts.map((c) => (
+              <Option key={c} value={c}>{c}</Option>
             ))}
           </Select>
           <Button onClick={resetFilters}>Reset</Button>
@@ -470,7 +501,7 @@ const EmissionFactorsTable: React.FC = () => {
           dataSource={rows}
           columns={columns}
           loading={loading}
-          scroll={{ x: 4000 }}
+          scroll={{ x: 1700 }}
           pagination={{
             current: page,
             pageSize,
@@ -529,10 +560,11 @@ const EmissionFactorsTable: React.FC = () => {
             {pendingFile ? pendingFile.name : "Click or drag a CSV file here"}
           </p>
           <p className="ant-upload-hint text-xs text-gray-500">
-            Expected columns (22, in this order): EF_ID, Product, Material, Process,
-            Activity_Type, Category, Sub_Category_1..4, Country_Code, Country_Name, Region,
-            Geo_Fallback_Chain, Unit, Unit_Kind, Recycled_Content, Factor_Suitability,
-            kgCO2e_per_unit, Reference_Year, Source_DB, Embedding_Text.
+            Required columns (7): Category, Sub-category, Group, Specific Type,
+            Geography, Unit, GWP 100. Upload the standard Main DB file (10,305 rows) and the
+            domain is filled in automatically by section. Optionally add a <strong>Domain</strong>{" "}
+            column (material / manufacturing / packaging / transport / waste) to set it per row.
+            Column order and exact spacing/punctuation don't matter — headers match flexibly.
           </p>
         </Upload.Dragger>
 

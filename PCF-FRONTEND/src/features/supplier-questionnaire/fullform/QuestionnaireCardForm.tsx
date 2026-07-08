@@ -31,6 +31,10 @@ interface BomComponent {
   bom_id: string;
   material_number: string;
   component_name: string;
+  detail_description?: string | null;
+  quantity?: number | string | null;
+  price?: number | string | null;
+  weight_kg?: number | string | null;
 }
 
 interface Props {
@@ -161,12 +165,50 @@ const QuestionnaireCardForm: React.FC<Props> = ({
         return;
       }
 
+      // Fixed-row tables (e.g. Q27 volume types): seed the pre-defined rows.
+      if (Array.isArray(field.prefillRows) && field.prefillRows.length > 0) {
+        if (!hasData && !emptySeededRef.current.has(key)) {
+          form.setFieldValue(
+            path,
+            field.prefillRows.map((r) => ({ ...r })),
+          );
+          emptySeededRef.current.add(key);
+        }
+        return;
+      }
+
       if (rows.length === 0 && !emptySeededRef.current.has(key)) {
         form.setFieldValue(path, [{}]);
         emptySeededRef.current.add(key);
       }
     });
   }, [section, bomComponents, form, values, initialValues]);
+
+  // Q2/Q3 single fields (product identity): pre-fill from the supplier's FIRST
+  // BOM component and keep them locked (FieldControl disables any field with
+  // autoPopulateFromBomField). Product name / MPN / description / declared
+  // quantity / price all come from the immutable client-uploaded BOM.
+  const singleBomSeededRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (!section || !Array.isArray(bomComponents) || bomComponents.length === 0)
+      return;
+    const first = bomComponents[0] as Record<string, any>;
+    section.fields.forEach((field) => {
+      if (field.type === "table" || !field.autoPopulateFromBomField) return;
+      const col = field.autoPopulateFromBomField;
+      const value = first[col];
+      if (value === undefined || value === null || value === "") return;
+      const key = `${section.id}:${field.name}:${first.bom_id}`;
+      if (singleBomSeededRef.current.has(key)) return;
+      const path = field.name.split(".");
+      // Numbers (quantity / price) come back as strings from PG — coerce so the
+      // InputNumber and the formula engine both get a real number.
+      const coerced =
+        field.type === "number" && typeof value === "string" ? Number(value) : value;
+      form.setFieldValue(path, coerced);
+      singleBomSeededRef.current.add(key);
+    });
+  }, [section, bomComponents, form, initialValues]);
 
   // Backfill component_name for bomMaterials rows saved before onChange wired it.
   useEffect(() => {
@@ -198,6 +240,17 @@ const QuestionnaireCardForm: React.FC<Props> = ({
       if (changed) form.setFieldValue(path, next);
     });
   }, [section, bomComponents, form, initialValues]);
+
+  // Q22: when a certificate scheme is entered (e.g. ISCC), default
+  // "Mass balancing used?" to Yes — but only if the supplier hasn't answered
+  // it yet, so their choice is never overridden.
+  useEffect(() => {
+    const scheme = getNested(values, "methodology.certificate_scheme");
+    const mb = getNested(values, "methodology.mass_balancing_used");
+    if (scheme && String(scheme).trim() !== "" && (mb === undefined || mb === null || mb === "")) {
+      form.setFieldValue(["methodology", "mass_balancing_used"], "Yes");
+    }
+  }, [values, form]);
 
   // ── Renderers ─────────────────────────────────────────────────────────────
 
@@ -245,7 +298,25 @@ const QuestionnaireCardForm: React.FC<Props> = ({
             <span style={{ fontSize: 13.5, fontWeight: 600, color: C.textSoft, lineHeight: 1.35 }}>
               {displayLabel(field)}
             </span>
-            <Tag field={field} />
+            {field.disabled ? (
+              <span
+                style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  letterSpacing: ".04em",
+                  textTransform: "uppercase",
+                  color: C.greenDark,
+                  background: C.greenSoft,
+                  border: "1px solid #bbf7d0",
+                  borderRadius: 6,
+                  padding: "2px 7px",
+                }}
+              >
+                Default
+              </span>
+            ) : (
+              <Tag field={field} />
+            )}
           </div>
           <Form.Item
             name={field.name.split(".")}

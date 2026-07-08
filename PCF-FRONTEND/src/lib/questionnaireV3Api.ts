@@ -25,7 +25,11 @@ interface ApiResponse<T = any> {
 }
 
 function headers() {
-    const token = authService.getToken();
+    // A supplier opens the emailed magic link (…?token=…) — that URL token
+    // authenticates them with no account/login. Fall back to the logged-in
+    // user's token (e.g. a super admin filling on the supplier's behalf).
+    const urlToken = new URLSearchParams(window.location.search).get("token");
+    const token = urlToken || authService.getToken();
     return {
         "Content-Type": "application/json",
         ...(token ? { Authorization: `${token}` } : {}),
@@ -38,8 +42,11 @@ const yesNoToBool = (v: any): boolean | undefined => {
     if (v === undefined || v === null || v === "") return undefined;
     if (typeof v === "boolean") return v;
     const s = String(v).toLowerCase().trim();
-    if (s === "yes" || s === "true" || s === "1" || s === "y") return true;
-    if (s === "no" || s === "false" || s === "0" || s === "n") return false;
+    // Some dropdowns use verbose labels like "Yes, include packaging" /
+    // "No, exclude packaging" / "No, the customer arranges it", so match on the
+    // leading yes/no token rather than requiring an exact "yes"/"no".
+    if (s === "true" || s === "1" || s === "y" || s.startsWith("yes")) return true;
+    if (s === "false" || s === "0" || s === "n" || s.startsWith("no")) return false;
     return undefined;
 };
 
@@ -148,6 +155,10 @@ export function mapV3FormToBackend(
     const electricity = arr(energy.electricity).map((e: any) => ({
         electricityType: str(e.electricity_type),
         generatorType: str(e.generator_type),
+        category: str(e.category),
+        subCategory: str(e.sub_category),
+        materialGroup: str(e.group),
+        specificType: str(e.specific_type),
         quantity: num(e.quantity),
         unit: str(e.unit),
         renewablePct: num(e.renewable_percent),
@@ -157,6 +168,10 @@ export function mapV3FormToBackend(
 
     const fuels = arr(energy.other_fuels).map((f: any) => ({
         fuelCarrier: str(f.fuel_carrier),
+        category: str(f.category),
+        subCategory: str(f.sub_category),
+        materialGroup: str(f.group),
+        specificType: str(f.specific_type),
         quantity: num(f.quantity),
         unit: str(f.unit),
         biogenicYN: yesNoToBool(f.biogenic),
@@ -170,7 +185,10 @@ export function mapV3FormToBackend(
     }));
 
     const qcItEnergy = arr(energy.qc_it_energy).map((q: any) => ({
-        item: str(q.item),
+        category: str(q.category),
+        subCategory: str(q.sub_category),
+        materialGroup: str(q.group),
+        specificType: str(q.specific_type),
         value: num(q.value),
         unit: str(q.unit),
         alreadyInQ10: yesNoToBool(q.already_in_q10),
@@ -178,9 +196,10 @@ export function mapV3FormToBackend(
 
     const productionWaste = arr(energy.production_waste).map((w: any) => ({
         productIdOrMpn: str(w.product_id),
-        componentName: str(w.component_name),
-        wasteType: str(w.waste_type),
-        treatmentType: str(w.treatment_type),
+        category: str(w.category),
+        subCategory: str(w.sub_category),
+        materialGroup: str(w.group),
+        specificType: str(w.specific_type),
         quantity: num(w.quantity),
         unit: str(w.unit),
         energyRecovered: yesNoToBool(w.energy_recovered),
@@ -189,9 +208,10 @@ export function mapV3FormToBackend(
 
     const packagingMaterials = arr(packaging.materials_used).map((p: any) => ({
         productIdOrMpn: str(p.product_id),
-        componentName: str(p.component_name),
-        packagingType: str(p.packaging_type),
-        processType: str(p.process_type),
+        category: str(p.category),
+        subCategory: str(p.sub_category),
+        materialGroup: str(p.group),
+        specificType: str(p.specific_type),
         packagingWeight: num(p.packaging_weight),
         unit: str(p.unit),
         region: str(p.region),
@@ -202,8 +222,10 @@ export function mapV3FormToBackend(
 
     const packagingTransport = arr(packaging.transport).map((t: any) => ({
         packagingProductIdOrMpn: str(t.product_id),
-        componentName: str(t.component_name),
-        transportMode: str(t.transport_mode),
+        category: str(t.category),
+        subCategory: str(t.sub_category),
+        materialGroup: str(t.group),
+        specificType: str(t.specific_type),
         weight: num(t.weight),
         unit: str(t.unit),
         distanceKm: num(t.distance_km),
@@ -211,9 +233,10 @@ export function mapV3FormToBackend(
 
     const packagingWaste = arr(packaging.waste).map((w: any) => ({
         mpnCode: str(w.mpn_code),
-        componentName: str(w.component_name),
-        packagingWasteType: str(w.packaging_waste_type),
-        treatmentType: str(w.treatment_type),
+        category: str(w.category),
+        subCategory: str(w.sub_category),
+        materialGroup: str(w.group),
+        specificType: str(w.specific_type),
         quantity: num(w.quantity),
         unit: str(w.unit),
         energyRecovered: yesNoToBool(w.energy_recovered),
@@ -221,8 +244,10 @@ export function mapV3FormToBackend(
 
     const transportLegs = arr(transport.legs).map((t: any) => ({
         productIdOrMpn: str(t.product_id),
-        componentName: str(t.component_name),
-        transportMode: str(t.transport_mode),
+        category: str(t.category),
+        subCategory: str(t.sub_category),
+        materialGroup: str(t.group),
+        specificType: str(t.specific_type),
         source: str(t.source),
         destination: str(t.destination),
         weight: num(t.weight),
@@ -238,6 +263,13 @@ export function mapV3FormToBackend(
         quantity: num(d.quantity),
         unit: str(d.unit),
         biogenicCarbonContentPct: num(d.biogenic_carbon_percent),
+    }));
+
+    // Q27 — production / product volumes (fixed volume types).
+    const volumes = arr(verification.volumes).map((v: any) => ({
+        volumeType: str(v.volume_type),
+        volume: num(v.volume),
+        sharePct: num(v.share_percent),
     }));
 
     return {
@@ -302,7 +334,7 @@ export function mapV3FormToBackend(
         // Q21
         crossSectoralStandards: str(methodology.cross_sectoral_standard),
         productOrSectorSpecificRules: str(methodology.product_sector_pcr),
-        ipccGwpVersion: str(methodology.gwp_version_info),
+        ipccGwpVersion: str(methodology.ipcc_gwp_version),
 
         // Q22
         massBalancingUsed: yesNoToBool(methodology.mass_balancing_used),
@@ -333,11 +365,19 @@ export function mapV3FormToBackend(
         certificateValidTo: str(verification.certificate_valid_to),
         pcfVerified: yesNoToBool(verification.pcf_verified),
         attestationType: str(verification.attestation_type),
+        conformantStandards: str(verification.conformant_standards),
         attestationSchemeStandard: str(verification.attestation_scheme_standard),
         attestationId: str(verification.attestation_id),
         attestationIssuer: str(verification.attestation_issuer),
+        issuerId: str(verification.issuer_id),
         attestationUrl: str(verification.attestation_url),
         attestationCompletedAt: str(verification.attestation_completed_at),
+
+        // Q10a — factory electricity allocation inputs (response-level).
+        factoryTotalEnergyKwh: num(energy.factory_total_energy_kwh),
+        factoryTotalWeightKg: num(energy.factory_total_weight_kg),
+        componentTotalWeightKg: num(energy.component_total_weight_kg),
+        componentNumProducts: num(energy.component_num_products),
 
         // children
         sites,
@@ -354,6 +394,230 @@ export function mapV3FormToBackend(
         packagingWaste,
         transportLegs,
         biomass,
+        volumes,
+    };
+}
+
+// --- mapper: backend QuestionnaireInput -> V3 nested formData ---------------
+// Inverse of mapV3FormToBackend. Used to rehydrate the form for responses saved
+// BEFORE form snapshots existed (snapshot null) by rebuilding the form shape
+// from the structured DB data returned by loadQuestionnaire. Best-effort: a few
+// non-persisted fields (contact, company BPN, product price, biomass stage,
+// acknowledgements) can't be restored and stay blank.
+const b2yn = (v: any): string | undefined =>
+    v === true || v === "true" || v === "Yes" || v === "Y" ? "Yes"
+    : v === false || v === "false" || v === "No" || v === "N" ? "No"
+    : undefined;
+const dstr = (v: any): string | undefined => (v ? String(v).slice(0, 10) : undefined);
+
+export function mapV3BackendToForm(d: any): Record<string, any> {
+    if (!d) return {};
+    return {
+        company: {
+            legal_name: d.companyName,
+            company_id: d.companyIdUrn,
+        },
+        product: {
+            name: d.productNameCompany,
+            product_id: d.productIdUrn,
+            description: d.productDescription,
+            classification: d.productClassificationUrn,
+            declared_unit: d.declaredUnit,
+            declared_unit_quantity: d.declaredUnitAmount,
+            declared_mass: d.productMassPerDeclaredUnit,
+            manufacturing_sites: (d.sites ?? []).map((s: any) => ({
+                site_name: s.siteName,
+                site_address: s.siteAddress,
+                region: s.region,
+                country: s.country,
+                subdivision: s.countrySubdivision,
+                notes: s.notes,
+            })),
+        },
+        scope_period: {
+            reference_start: dstr(d.referencePeriodStart),
+            reference_end: dstr(d.referencePeriodEnd),
+            validity_start: dstr(d.validityPeriodStart),
+            validity_end: dstr(d.validityPeriodEnd),
+            pcf_type: d.retroOrProspectivePcfType,
+            system_boundary: d.systemBoundary,
+        },
+        bom: {
+            co_products_produced: b2yn(d.coProductsPresent),
+            bill_of_materials: (d.bom ?? []).map((b: any) => ({
+                product_id: b.productIdOrMpn,
+                component_name: b.componentName,
+                material: b.material,
+                sub_category: b.subCategory,
+                group: b.materialGroup,
+                specific_type: b.specificType,
+                mass_percent: b.massPct,
+                carbon_percent: b.carbonPct,
+                biogenic: b2yn(b.biogenicYN),
+                biogenic_carbon_percent: b.biogenicCarbonPct,
+                recycled: b2yn(b.recycledYN),
+                recycled_carbon_percent: b.recycledCarbonPct,
+            })),
+            co_products: (d.coProducts ?? []).map((c: any) => ({
+                mpn: c.mpn,
+                component_name: c.componentName,
+                co_product_name: c.coProductName,
+                co_product_price: c.coProductPrice,
+                is_primary: b2yn(c.isPrimaryProduct),
+            })),
+        },
+        energy: {
+            factory_total_energy_kwh: d.factoryTotalEnergyKwh,
+            factory_total_weight_kg: d.factoryTotalWeightKg,
+            electricity: (d.electricity ?? []).map((e: any) => ({
+                electricity_type: e.electricityType,
+                generator_type: e.generatorType,
+                category: e.category,
+                sub_category: e.subCategory,
+                group: e.materialGroup,
+                specific_type: e.specificType,
+                quantity: e.quantity,
+                unit: e.unit,
+                renewable_percent: e.renewablePct,
+                renewable_sourcing: e.renewableSourcing,
+                infrastructure_included: b2yn(e.infrastructureEmissionsIncluded),
+            })),
+            other_fuels: (d.fuels ?? []).map((f: any) => ({
+                fuel_carrier: f.fuelCarrier,
+                category: f.category,
+                sub_category: f.subCategory,
+                group: f.materialGroup,
+                specific_type: f.specificType,
+                quantity: f.quantity,
+                unit: f.unit,
+                biogenic: b2yn(f.biogenicYN),
+            })),
+            direct_process_gases: (d.processGases ?? []).map((g: any) => ({
+                gas: g.directProcessGas,
+                quantity: g.quantity,
+                unit: g.unit,
+                origin: g.fossilOrBiogenic,
+            })),
+            qc_it_energy: (d.qcItEnergy ?? []).map((q: any) => ({
+                category: q.category,
+                sub_category: q.subCategory,
+                group: q.materialGroup,
+                specific_type: q.specificType,
+                value: q.value,
+                unit: q.unit,
+                already_in_q10: b2yn(q.alreadyInQ10),
+            })),
+            production_waste: (d.productionWaste ?? []).map((w: any) => ({
+                product_id: w.productIdOrMpn,
+                category: w.category,
+                sub_category: w.subCategory,
+                group: w.materialGroup,
+                specific_type: w.specificType,
+                quantity: w.quantity,
+                unit: w.unit,
+                energy_recovered: b2yn(w.energyRecovered),
+                polluter_pays_applied: b2yn(w.polluterPaysApplied),
+            })),
+        },
+        packaging: {
+            include_packaging: b2yn(d.packagingEmissionsIncluded),
+            materials_used: (d.packagingMaterials ?? []).map((p: any) => ({
+                product_id: p.productIdOrMpn,
+                category: p.category,
+                sub_category: p.subCategory,
+                group: p.materialGroup,
+                specific_type: p.specificType,
+                packaging_weight: p.packagingWeight,
+                unit: p.unit,
+                region: p.region,
+                country: p.country,
+                recycled_percent: p.recycledPct,
+                carbon_biogenic_percent: p.carbonBiogenicPct,
+            })),
+            transport: (d.packagingTransport ?? []).map((t: any) => ({
+                product_id: t.packagingProductIdOrMpn,
+                category: t.category,
+                sub_category: t.subCategory,
+                group: t.materialGroup,
+                specific_type: t.specificType,
+                weight: t.weight,
+                unit: t.unit,
+                distance_km: t.distanceKm,
+            })),
+            waste: (d.packagingWaste ?? []).map((w: any) => ({
+                mpn_code: w.mpnCode,
+                category: w.category,
+                sub_category: w.subCategory,
+                group: w.materialGroup,
+                specific_type: w.specificType,
+                quantity: w.quantity,
+                unit: w.unit,
+                energy_recovered: b2yn(w.energyRecovered),
+            })),
+        },
+        transport: {
+            outbound_in_boundary: b2yn(d.distributionStageIncluded),
+            legs: (d.transportLegs ?? []).map((t: any) => ({
+                product_id: t.productIdOrMpn,
+                category: t.category,
+                sub_category: t.subCategory,
+                group: t.materialGroup,
+                specific_type: t.specificType,
+                source: t.source,
+                destination: t.destination,
+                weight: t.weight,
+                unit: t.unit,
+                distance_km: t.distanceKm,
+                low_carbon_fuel: b2yn(t.lowCarbonFuel),
+                fuel_certificate_ref: t.fuelCertificateRef,
+            })),
+        },
+        biobased: {
+            contains_biobased: b2yn(d.usesAgriculturalForestryLand),
+            details: (d.biomass ?? []).map((b: any) => ({
+                feedstock: b.biomassFeedstockType,
+                quantity: b.quantity,
+                unit: b.unit,
+                biogenic_carbon_percent: b.biogenicCarbonContentPct,
+            })),
+        },
+        methodology: {
+            cross_sectoral_standard: d.crossSectoralStandards,
+            product_sector_pcr: d.productOrSectorSpecificRules,
+            ipcc_gwp_version: d.ipccGwpVersion,
+            mass_balancing_used: b2yn(d.massBalancingUsed),
+            certificate_scheme: d.massBalancingCertificateScheme,
+            free_attribution_used: b2yn(d.freeAttributionInMassBalancing),
+            recycled_carbon_method: d.allocationRecycledCarbon,
+            waste_incineration_method: d.allocationWasteIncineration,
+            allocation_rationale: d.allocationRulesDescription,
+        },
+        boundary: {
+            ccs_ccu_used: b2yn(d.ccsCo2CaptureIncluded),
+            excluded_flows: d.exemptedEmissionsDescription,
+            exempted_percent: d.exemptedEmissionsPercent,
+        },
+        dqr: {
+            primary_data_share: d.primaryDataSharePct,
+            secondary_ef_source: d.secondaryEfSources,
+            data_year: d.dataCollectedYear,
+            technological: d.technologicalDqr,
+            geographical: d.geographicalDqr,
+            temporal: d.temporalDqr,
+        },
+        verification: {
+            product_certified: b2yn(d.isProductCertified),
+            pcf_verified: b2yn(d.isPcfVerified),
+            volumes: [
+                { volume_type: "Certified volume", volume: d.certifiedVolume },
+                { volume_type: "Total production volume", volume: d.totalProductionVolume },
+                { volume_type: "1st-party verified volume", volume: d.verifiedVolume1stParty },
+                { volume_type: "2nd-party verified volume", volume: d.verifiedVolume2ndParty },
+                { volume_type: "3rd-party verified volume", volume: d.verifiedVolume3rdParty },
+                { volume_type: "Total product volume", volume: d.totalProductVolume },
+            ],
+        },
+        comments: d.comments,
     };
 }
 
@@ -392,7 +656,20 @@ export async function saveV3Questionnaire(
     ctx: V3MapperContext
 ): Promise<ApiResponse<{ responseId: string; status: string }>> {
     const payload = mapV3FormToBackend(formData, ctx);
+    // Also persist the raw form state so it can be reloaded losslessly.
+    payload.formSnapshot = formData;
     return postJson(`${API_BASE_URL}/api/questionnaire/save`, payload);
+}
+
+// The current supplier's own saved response for this PCF request (id + status +
+// raw form snapshot), used to reload the form when they reopen it. Returns
+// { data: null } when no draft exists yet.
+export async function loadMineV3(
+    bomPcfRequestId: string,
+    supplierId?: string
+): Promise<ApiResponse<{ responseId: string; status: string; formSnapshot: any } | null>> {
+    const qs = supplierId ? `?supplierId=${encodeURIComponent(supplierId)}` : "";
+    return getJson(`${API_BASE_URL}/api/questionnaire/mine/${encodeURIComponent(bomPcfRequestId)}${qs}`);
 }
 
 export async function loadV3Questionnaire(
