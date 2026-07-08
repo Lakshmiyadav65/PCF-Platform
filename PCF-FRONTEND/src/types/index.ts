@@ -16,8 +16,6 @@ export interface MenuItem {
   children?: MenuItem[];
   // Permission key for access control - maps to module name in permissions API
   permissionKey?: string;
-  // Optional pill shown next to the title (e.g. "Beta", "New")
-  badge?: string;
 }
 
 // Backend user structure

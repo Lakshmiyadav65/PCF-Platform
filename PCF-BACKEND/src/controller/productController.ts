@@ -997,7 +997,6 @@ export async function listProducts(req: any, res: any) {
                 LIMIT ${limit} OFFSET ${offset};
             `;
 
-            console.log(whereSQL, "whereSQLwhereSQLwhereSQL", whereClauses);
 
             const countQuery = `
                 SELECT COUNT(*) AS total
@@ -4642,7 +4641,6 @@ async function insertSupplierProduct(client: any, data: any, sgiq_id: string, pr
                 p.material_number,
                 p.product_name,
                 p.production_period,
-                p.total_weight_factory_kg,
                 p.weight_per_unit,
                 p.unit,
                 p.price,
@@ -4658,7 +4656,6 @@ async function insertSupplierProduct(client: any, data: any, sgiq_id: string, pr
                     material_number: p.material_number,
                     product_name: p.product_name,
                     production_period: p.production_period,
-                    total_weight_factory_kg: p.total_weight_factory_kg,
                     weight_per_unit: p.weight_per_unit,
                     unit: p.unit,
                     price: p.price,
@@ -4679,7 +4676,6 @@ async function insertSupplierProduct(client: any, data: any, sgiq_id: string, pr
                 'material_number',
                 'product_name',
                 'production_period',
-                'total_weight_factory_kg',
                 'weight_per_unit',
                 'unit',
                 'price',

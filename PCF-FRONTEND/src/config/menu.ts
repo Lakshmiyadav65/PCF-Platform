@@ -16,14 +16,6 @@ export const menuItems: MenuItem[] = [
     permissionKey: "pcf request",
   },
   {
-    id: "product-footprints",
-    title: "Product Footprints",
-    path: "/product-footprints",
-    icon: "Boxes",
-    badge: "Beta",
-    // No permissionKey: visible to everyone while in Beta
-  },
-  {
     id: "product-portfolio",
     title: "Product Hub",
     path: "/product-portfolio/all-products",

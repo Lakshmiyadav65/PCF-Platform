@@ -68,8 +68,6 @@ const DataQualityRatingList = lazy(() => import("../pages/DataQualityRatingList"
 const PCFRequestCreate = lazy(() => import("../pages/PCFRequestCreate"));
 const PCFRequestView = lazy(() => import("../pages/PCFRequestView"));
 const PCFRequestEdit = lazy(() => import("../pages/PCFRequestEdit"));
-const ProductFootprints = lazy(() => import("../pages/ProductFootprints"));
-const ProductFootprintCreate = lazy(() => import("../pages/ProductFootprintCreate"));
 const TaskView = lazy(() => import("../pages/TaskView"));
 const ReportView = lazy(() => import("../pages/ReportView"));
 
@@ -227,16 +225,6 @@ export const router = createBrowserRouter([
             <S><PCFRequestEdit /></S>
           </PermissionRoute>
         ),
-      },
-      {
-        // Product Footprints (Beta) - self-contained Climatiq-style PCF wizard.
-        // No permission gate while in Beta.
-        path: "product-footprints",
-        element: <S><ProductFootprints /></S>,
-      },
-      {
-        path: "product-footprints/new",
-        element: <S><ProductFootprintCreate /></S>,
       },
       {
         path: "product-portfolio",

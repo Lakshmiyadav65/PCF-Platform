@@ -82,11 +82,17 @@ export interface QuestionnaireField {
   fields?: QuestionnaireField[];
   min?: number;
   max?: number;
+  /** When set, the value must be strictly greater than this (e.g. 0 → "> 0"). */
+  exclusiveMin?: number;
   maxLength?: number;
   content?: React.ReactNode;
   className?: string;
   mode?: "multiple" | "tags";
   apiDropdown?: ApiDropdownType;
+  // Cascading EF-taxonomy dropdown sourced from /api/emission-factors/meta/taxonomy.
+  // The 4 levels (category → sub_category → group → specific_type) together pin
+  // the exact EF. Each level filters by the row's higher-level selections.
+  efTaxonomyLevel?: "category" | "sub_category" | "group" | "specific_type";
   dependsOnField?: string;
   efSource?: "electricity" | "fuel" | "packaging" | "vehicle" | "waste" | "materials";
   efLayer?: 1 | 2 | 3 | 4;
@@ -95,6 +101,17 @@ export interface QuestionnaireField {
   // BOM (bomComponents prop in DynamicQuestionnaireForm). Used by Q8 — supplier
   // describes each BOM line but cannot add or remove rows.
   autoPopulateFromBom?: boolean;
+  // Pre-fill a SINGLE field (Q2/Q3 product identity) from the supplier's first
+  // BOM component. Value is the bom column to read (e.g. "component_name",
+  // "material_number", "detail_description", "quantity", "price"). Fields with
+  // this flag are always rendered read-only — the supplier cannot edit them.
+  autoPopulateFromBomField?:
+    | "component_name"
+    | "material_number"
+    | "detail_description"
+    | "quantity"
+    | "price"
+    | "weight_kg";
   // Hide the "Add Row" button AND replace the per-row Delete with a Clear button
   // (wipes editable columns, keeps readOnly columns + the row itself). Used by Q8
   // so the BOM structure can't be tampered with.

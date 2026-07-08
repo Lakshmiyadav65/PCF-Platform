@@ -6,7 +6,6 @@ import {
   LayoutDashboard,
   FileText,
   Package,
-  Boxes,
   Grid,
   FolderOpen,
   PlayCircle,
@@ -47,7 +46,6 @@ const iconMap: Record<string, React.ComponentType<any>> = {
   LayoutDashboard,
   FileText,
   Package,
-  Boxes,
   Grid,
   FolderOpen,
   PlayCircle,
@@ -204,15 +202,12 @@ const Sidebar: React.FC<SidebarProps> = ({
                   ? "active text-white shadow-lg"
                   : "text-slate-300"
               )}
-              title={item.badge ? `${item.title} (${item.badge})` : item.title}
+              title={item.title}
             >
               <IconComponent className="h-5 w-5" />
-              {item.badge && (
-                <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-green-400 ring-2 ring-slate-900" />
-              )}
               {/* Tooltip for minimized state */}
               <div className="absolute left-full ml-3 px-3 py-1.5 bg-slate-800 text-white text-xs font-medium rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-200 whitespace-nowrap z-50 pointer-events-none shadow-xl">
-                {item.badge ? `${item.title} · ${item.badge}` : item.title}
+                {item.title}
                 <div className="absolute left-0 top-1/2 -translate-x-1 -translate-y-1/2 w-2 h-2 bg-slate-800 rotate-45"></div>
               </div>
             </NavLink>
@@ -275,11 +270,6 @@ const Sidebar: React.FC<SidebarProps> = ({
                 )}
               />
               <span className="flex-1">{item.title}</span>
-              {item.badge && (
-                <span className="ml-2 shrink-0 rounded-full bg-green-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-green-400 ring-1 ring-inset ring-green-500/30">
-                  {item.badge}
-                </span>
-              )}
             </NavLink>
           )}
         </div>
